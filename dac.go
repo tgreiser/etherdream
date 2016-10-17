@@ -1,4 +1,4 @@
-package lib
+package etherdream
 
 import (
         "encoding/binary"
@@ -53,7 +53,7 @@ func NewBroadcastPacket(b []byte) *BroadcastPacket {
         }
 }
 
-func FindFirst() (*net.UDPAddr, *BroadcastPacket, error) {
+func FindFirstDAC() (*net.UDPAddr, *BroadcastPacket, error) {
         // listen for broadcast packets
         sock, err := net.ListenUDP("udp4", &net.UDPAddr{
                 IP:   net.IPv4(0, 0, 0, 0),
