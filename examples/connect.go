@@ -23,7 +23,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dac.Close()
-	log.Printf("Initialized...")
+	log.Printf("Initialized %v\n", d.LastStatus)
+	log.Printf("Firmware String: %v\n", d.FirmwareString)
 
 	st, err := dac.Ping()
 	if err != nil {
