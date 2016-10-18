@@ -30,5 +30,4 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Ping status: %v", st)
-	//dac.play(square_point_stream())
 }

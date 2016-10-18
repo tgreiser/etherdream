@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -110,9 +111,14 @@ func (d *DAC) Init() error {
 	}
 	fmt.Println(status)
 
-	//d.Send("v")
-	// d.FirmwareString = self.read(32).replace("\x00", " ").strip()
-	// fmt.Printf("Firmware String: %v\n", d.FirmwareString)
+	d.Send([]byte("v"))
+	by, err2 := d.Read(32)
+	if err2 != nil {
+		return err2
+	}
+
+	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
+	fmt.Printf("Firmware String: %v\n", d.FirmwareString)
 	return nil
 }
 
