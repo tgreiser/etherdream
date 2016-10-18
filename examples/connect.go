@@ -1,13 +1,22 @@
 package main
 
 import (
-	"fmt"
 	"github.com/tgreiser/etherdream"
+	"log"
 )
 
 func main() {
-	fmt.Printf("Listening...\n")
+	log.Printf("Listening...\n")
 	addr, bp, err := etherdream.FindFirstDAC()
+	if err != nil {
+		log.Fatal("Network error: %v", err)
+	}
 
-	fmt.Printf("Found DAC at %v\nBroadcast Packet %v\nerr %v", addr, bp, err)
+	log.Printf("Found DAC at %v\n", addr)
+
+	log.Printf("BP:\n%v\n", bp)
+	log.Printf("Status:\n%v\n", bp.Status)
+
+	//dac := etherdream.NewDAC(addr)
+	//dac.play(square_point_stream())
 }
