@@ -17,6 +17,18 @@ func main() {
 	log.Printf("BP:\n%v\n", bp)
 	log.Printf("Status:\n%v\n", bp.Status)
 
-	//dac := etherdream.NewDAC(addr)
+	dac := etherdream.NewDAC(addr.IP.String())
+	err = dac.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer dac.Close()
+	log.Printf("Initialized...")
+
+	st, err := dac.Ping()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Ping status: %v", st)
 	//dac.play(square_point_stream())
 }

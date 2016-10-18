@@ -7,6 +7,9 @@ Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/)
 ## Setup
 
 This assumes you are plugged in to your ether dream via ethernet cable. You
-may need allow UDP port 7654 on your firewall as you will be communicating 
-on that port. Inbound fommunications are needed for the initial broadcast
-signal and handshake.
+may need to set up some rules for your firewall. Inbound communications 
+are needed for the initial broadcast signal and handshake, if you don't
+need to Find a DAC, you can use outbound only.
+
+- Outbound rule: TCP port 7765
+- Inbound rule: UDP port 7654
