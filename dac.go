@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
+
+var mut = &sync.Mutex{}
 
 type ProtocolError struct {
 	Msg string
@@ -16,67 +20,6 @@ type ProtocolError struct {
 
 func (e *ProtocolError) Error() string {
 	return e.Msg
-}
-
-type DACStatus struct {
-	Protocol         uint8
-	LightEngineState uint8
-	PlaybackState    uint8
-	Source           uint8
-	LightEngineFlags uint16
-	PlaybackFlags    uint16
-	SourceFlags      uint16
-	BufferFullness   uint16
-	PointRate        uint32
-	PointCount       uint32
-}
-
-func NewDACStatus(b []byte) *DACStatus {
-	return &DACStatus{
-		Protocol:         b[0],
-		LightEngineState: b[1],
-		PlaybackState:    b[2],
-		Source:           b[3],
-		LightEngineFlags: binary.LittleEndian.Uint16(b[4:6]),
-		PlaybackFlags:    binary.LittleEndian.Uint16(b[6:8]),
-		SourceFlags:      binary.LittleEndian.Uint16(b[8:10]),
-		BufferFullness:   binary.LittleEndian.Uint16(b[10:12]),
-		PointRate:        binary.LittleEndian.Uint32(b[12:16]),
-		PointCount:       binary.LittleEndian.Uint32(b[16:20]),
-	}
-}
-func (st DACStatus) String() string {
-	return fmt.Sprintf("Light engine: state %d, flags 0x%x\n", st.LightEngineState, st.LightEngineFlags) +
-		fmt.Sprintf("Playback: state %d, flags 0x%x\n", st.PlaybackState, st.PlaybackFlags) +
-		fmt.Sprintf("Buffer: %d points\n", st.BufferFullness) +
-		fmt.Sprintf("Playback: %d kpps, %d points played", st.PointRate, st.PointCount) +
-		fmt.Sprintf("Source: %d, flags 0x%x", st.Source, st.SourceFlags)
-}
-
-type BroadcastPacket struct {
-	MAC            []uint8
-	HWRev          uint16
-	SWRev          uint16
-	BufferCapacity uint16
-	MaxPointRate   uint32
-	Status         *DACStatus
-}
-
-func NewBroadcastPacket(b []byte) *BroadcastPacket {
-	return &BroadcastPacket{
-		MAC:            b[0:6],
-		HWRev:          binary.LittleEndian.Uint16(b[6:8]),
-		SWRev:          binary.LittleEndian.Uint16(b[8:10]),
-		BufferCapacity: binary.LittleEndian.Uint16(b[10:12]),
-		MaxPointRate:   binary.LittleEndian.Uint32(b[12:16]),
-		Status:         NewDACStatus(b[16:36]),
-	}
-}
-
-func (bp BroadcastPacket) String() string {
-	return fmt.Sprintf("MAC: %02x %02x %02x %02x %02x %02x\n", bp.MAC[0], bp.MAC[1], bp.MAC[2], bp.MAC[3], bp.MAC[4], bp.MAC[5]) +
-		fmt.Sprintf("HW %d, SW %d\n", bp.HWRev, bp.SWRev) +
-		fmt.Sprintf("Capabilities: max %d points, %d kpps", bp.BufferCapacity, bp.MaxPointRate)
 }
 
 type DAC struct {
@@ -150,10 +93,10 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	fmt.Printf("Read response: %s %s\n", string(resp), string(cmdR))
 
 	if cmdR != []byte(cmd)[0] {
-		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %r, got %r", cmd, cmdR)}
+		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", string(cmd), string(cmdR))}
 	}
 	if resp != []byte("a")[0] {
-		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %r", resp)}
+		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %s", string(resp))}
 	}
 	d.LastStatus = status
 	return status, nil
@@ -242,18 +185,25 @@ func (d DAC) Play(stream PointStream) {
 		// Read calls from the pipe
 		cap := 1799 - d.LastStatus.BufferFullness
 		by := make([]byte, cap*16)
-		l, err := d.Reader.Read(by)
-		if err != nil {
-			fmt.Errorf("Issue playing stream: %v", err)
-			continue
-		}
-		fmt.Printf("Read %v bytes from pipe. Cap: %v\n", l, cap)
+		idx := 0
 
-		if cap < 100 {
-			time.Sleep(time.Millisecond * 5)
-			cap += 150
+		for idx < int(cap) {
+			l, err := d.Reader.Read(by[idx:])
+			if err != nil {
+				fmt.Printf("Error playing stream: %v", err)
+				continue
+			}
+			fmt.Printf("Read %v bytes from pipe. Cap: %v\n", l, cap)
+			idx++
 		}
 
+		/*
+			if cap < 100 {
+				time.Sleep(time.Millisecond * 5)
+				cap += 150
+			}*/
+
+		mut.Lock()
 		t0 := time.Now()
 		d.Write(by)
 		t1 := time.Now()
@@ -263,6 +213,8 @@ func (d DAC) Play(stream PointStream) {
 			d.Begin(0, 30000)
 			started = 1
 		}
+		mut.Unlock()
+		runtime.Gosched()
 	}
 }
 
@@ -297,6 +249,7 @@ func NewPoint(x, y, r, g, b, i int) *Point {
 // passed in for the other fields, i will default to max(r, g, b); the
 // rest default to zero.
 func (p Point) Encode() []byte {
+	mut.Lock()
 	if p.I <= 0 {
 		p.I = p.R
 		if p.G > p.I {
@@ -319,6 +272,7 @@ func (p Point) Encode() []byte {
 	binary.LittleEndian.PutUint16(enc[10:12], p.I)
 	binary.LittleEndian.PutUint16(enc[12:14], p.U1)
 	binary.LittleEndian.PutUint16(enc[14:16], p.U2)
+	mut.Unlock()
 	return enc
 }
 
@@ -326,7 +280,7 @@ type Points struct {
 	Points []Point
 }
 
-// Listen for broadcast packets on your network. Return the UDPAddr
+// FindFirstDAC starts a UDP server to listen for broadcast packets on your network. Return the UDPAddr
 // of the first Ether Dream DAC located
 func FindFirstDAC() (*net.UDPAddr, *BroadcastPacket, error) {
 	// listen for broadcast packets

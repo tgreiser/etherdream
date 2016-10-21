@@ -1,16 +1,18 @@
 package main
 
 import (
-	"github.com/tgreiser/etherdream"
 	"io"
 	"log"
+	"runtime"
+
+	"github.com/tgreiser/etherdream"
 )
 
 func main() {
 	log.Printf("Listening...\n")
 	addr, _, err := etherdream.FindFirstDAC()
 	if err != nil {
-		log.Fatal("Network error: %v", err)
+		log.Fatalf("Network error: %v", err)
 	}
 
 	log.Printf("Found DAC at %v\n", addr)
@@ -45,6 +47,7 @@ func squarePointStream(w *io.PipeWriter) etherdream.Points {
 			w.Write(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax).Encode())
 		}
 		log.Printf("Generated a frame")
+		runtime.Gosched() // yield for other go routines
 	}
 }
 
@@ -53,7 +56,7 @@ func xrange(min, max, step int) []int {
 	iY := 0
 	for iX := min; iX <= max; iX += step {
 		ret[iY] = iX
-		iY += 1
+		iY++
 	}
 	return ret
 }

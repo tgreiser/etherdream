@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/tgreiser/etherdream"
 	"log"
+
+	"github.com/tgreiser/etherdream"
 )
 
 func main() {
@@ -23,8 +24,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dac.Close()
-	log.Printf("Initialized %v\n", d.LastStatus)
-	log.Printf("Firmware String: %v\n", d.FirmwareString)
+	log.Printf("Initialized %v\n", dac.LastStatus)
+	log.Printf("Firmware String: %v\n", dac.FirmwareString)
 
 	st, err := dac.Ping()
 	if err != nil {
