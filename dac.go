@@ -14,6 +14,9 @@ import (
 
 var mut = &sync.Mutex{}
 
+// PointSize is the number of bytes in a point struct
+const PointSize uint16 = 18
+
 type ProtocolError struct {
 	Msg string
 }
@@ -113,7 +116,9 @@ func (d DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
 	d.Send(cmd)
-	return d.ReadResponse("b")
+	s, err := d.ReadResponse("b")
+	fmt.Println(s)
+	return s, err
 }
 
 func (d DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
@@ -129,7 +134,7 @@ func (d DAC) Write(b []byte) (*DACStatus, error) {
 	l := uint16(len(b))
 	cmd := make([]byte, l+3)
 	cmd[0] = []byte("d")[0]
-	binary.LittleEndian.PutUint16(cmd[1:3], l)
+	binary.LittleEndian.PutUint16(cmd[1:3], l/PointSize)
 	copy(cmd[3:], b)
 
 	fmt.Printf("Writing cmd - length: 3 + %v\n", l)
@@ -175,6 +180,7 @@ func (d DAC) Play(stream PointStream) {
 		fmt.Errorf("Already playing?!")
 	} else if d.LastStatus.PlaybackState == 0 {
 		d.Prepare()
+		fmt.Printf("DAC prepared: %v\n", d.LastStatus)
 	}
 
 	started := 0
@@ -184,10 +190,17 @@ func (d DAC) Play(stream PointStream) {
 	for {
 		// Read calls from the pipe
 		cap := 1799 - d.LastStatus.BufferFullness
-		by := make([]byte, cap*16)
-		idx := 0
 
-		for idx < int(cap/2) {
+		if cap < 100 {
+			time.Sleep(time.Millisecond * 5)
+			continue
+		}
+
+		by := make([]byte, cap*PointSize)
+		idx := 0
+		payloadSize := int(cap / 2)
+
+		for idx < payloadSize {
 			ln, err := d.Reader.Read(by[idx:])
 			if err != nil {
 				fmt.Printf("Error playing stream: %v", err)
@@ -198,32 +211,28 @@ func (d DAC) Play(stream PointStream) {
 
 		}
 
-		/*
-			if cap < 100 {
-				time.Sleep(time.Millisecond * 5)
-				cap += 150
-			}*/
-
 		mut.Lock()
 		t0 := time.Now()
 		d.Write(by[:idx])
 		t1 := time.Now()
-		fmt.Printf("Took %v", t1.Sub(t0).String())
+		fmt.Printf("%v bytes took %v\n", idx, t1.Sub(t0).String())
 
 		if started == 0 {
 			d.Begin(0, 30000)
 			started = 1
 		}
+		fmt.Printf("%v\n", d.LastStatus)
 		mut.Unlock()
 		runtime.Gosched()
+
 	}
 }
 
 type PointStream func(w *io.PipeWriter) Points
 
 type Point struct {
-	X     uint8
-	Y     uint8
+	X     int16
+	Y     int16
 	R     uint16
 	G     uint16
 	B     uint16
@@ -235,8 +244,8 @@ type Point struct {
 
 func NewPoint(x, y, r, g, b, i int) *Point {
 	return &Point{
-		X: uint8(x),
-		Y: uint8(y),
+		X: int16(x),
+		Y: int16(y),
 		R: uint16(r),
 		G: uint16(g),
 		B: uint16(b),
@@ -244,7 +253,7 @@ func NewPoint(x, y, r, g, b, i int) *Point {
 	}
 }
 
-// Pack color values into a 16 byte struct Point
+// Pack color values into a 18 byte struct Point
 //
 // Values must be specified for x, y, r, g, and b. If a value is not
 // passed in for the other fields, i will default to max(r, g, b); the
@@ -260,19 +269,21 @@ func (p Point) Encode() []byte {
 			p.I = p.B
 		}
 	}
-	var enc []byte = make([]byte, 16)
+	var enc []byte = make([]byte, 18)
 
 	fmt.Printf("Encoding %v\n", p)
 
 	binary.LittleEndian.PutUint16(enc[0:2], p.Flags)
-	enc[2] = p.X
-	enc[3] = p.Y
-	binary.LittleEndian.PutUint16(enc[4:6], p.R)
-	binary.LittleEndian.PutUint16(enc[6:8], p.G)
-	binary.LittleEndian.PutUint16(enc[8:10], p.B)
-	binary.LittleEndian.PutUint16(enc[10:12], p.I)
-	binary.LittleEndian.PutUint16(enc[12:14], p.U1)
-	binary.LittleEndian.PutUint16(enc[14:16], p.U2)
+	// X and Y are actualy int16
+	binary.LittleEndian.PutUint16(enc[2:4], uint16(p.X))
+	binary.LittleEndian.PutUint16(enc[4:6], uint16(p.Y))
+
+	binary.LittleEndian.PutUint16(enc[6:8], p.R)
+	binary.LittleEndian.PutUint16(enc[8:10], p.G)
+	binary.LittleEndian.PutUint16(enc[10:12], p.B)
+	binary.LittleEndian.PutUint16(enc[12:14], p.I)
+	binary.LittleEndian.PutUint16(enc[14:16], p.U1)
+	binary.LittleEndian.PutUint16(enc[16:18], p.U2)
 	mut.Unlock()
 	return enc
 }
