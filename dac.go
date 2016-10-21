@@ -132,7 +132,7 @@ func (d DAC) Write(b []byte) (*DACStatus, error) {
 	binary.LittleEndian.PutUint16(cmd[1:3], l)
 	copy(cmd[3:], b)
 
-	fmt.Printf("Writing cmd - length: %v\n", l)
+	fmt.Printf("Writing cmd - length: 3 + %v\n", l)
 	d.Send(cmd)
 	fmt.Println("Reading response d")
 	return d.ReadResponse("d")
@@ -187,14 +187,15 @@ func (d DAC) Play(stream PointStream) {
 		by := make([]byte, cap*16)
 		idx := 0
 
-		for idx < int(cap) {
-			l, err := d.Reader.Read(by[idx:])
+		for idx < int(cap/2) {
+			ln, err := d.Reader.Read(by[idx:])
 			if err != nil {
 				fmt.Printf("Error playing stream: %v", err)
 				continue
 			}
-			fmt.Printf("Read %v bytes from pipe. Cap: %v\n", l, cap)
-			idx++
+			idx += ln
+			fmt.Printf("Read %v bytes from pipe. Cap: %v / %v\n", ln, idx, cap)
+
 		}
 
 		/*
@@ -205,7 +206,7 @@ func (d DAC) Play(stream PointStream) {
 
 		mut.Lock()
 		t0 := time.Now()
-		d.Write(by)
+		d.Write(by[:idx])
 		t1 := time.Now()
 		fmt.Printf("Took %v", t1.Sub(t0).String())
 
