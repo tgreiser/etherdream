@@ -198,30 +198,33 @@ func (d DAC) Play(stream PointStream) {
 
 		by := make([]byte, cap*PointSize)
 		idx := 0
-		payloadSize := int(cap / 2)
+		payloadSize := int(cap)
+
+		fmt.Printf("Buffer capacity: %v pts\n", cap)
 
 		for idx < payloadSize {
-			ln, err := d.Reader.Read(by[idx:])
+			_, err := d.Reader.Read(by[idx:])
 			if err != nil {
 				fmt.Printf("Error playing stream: %v", err)
 				continue
 			}
-			idx += ln
-			fmt.Printf("Read %v bytes from pipe. Cap: %v / %v\n", ln, idx, cap)
+			idx++
+			//fmt.Printf("Read %v bytes from pipe. Cap: %v / %v\n", ln, idx, cap)
 
 		}
 
 		mut.Lock()
 		t0 := time.Now()
-		d.Write(by[:idx])
+		d.Write(by)
 		t1 := time.Now()
-		fmt.Printf("%v bytes took %v\n", idx, t1.Sub(t0).String())
+		fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
 
 		if started == 0 {
 			d.Begin(0, 30000)
 			started = 1
+			fmt.Println("Begin executed")
 		}
-		fmt.Printf("%v\n", d.LastStatus)
+		fmt.Printf("Status: %v\n", d.LastStatus)
 		mut.Unlock()
 		runtime.Gosched()
 
@@ -271,7 +274,7 @@ func (p Point) Encode() []byte {
 	}
 	var enc []byte = make([]byte, 18)
 
-	fmt.Printf("Encoding %v\n", p)
+	//fmt.Printf("Encoding %v\n", p)
 
 	binary.LittleEndian.PutUint16(enc[0:2], p.Flags)
 	// X and Y are actualy int16
