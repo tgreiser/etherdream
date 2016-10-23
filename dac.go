@@ -250,6 +250,7 @@ func (d DAC) Play(stream PointStream, debug bool) {
 
 		if cap < 100 {
 			time.Sleep(time.Millisecond * 5)
+			d.Ping()
 			continue
 		}
 

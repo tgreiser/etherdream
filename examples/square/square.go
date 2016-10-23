@@ -53,16 +53,16 @@ func squarePointStream(w *io.PipeWriter) etherdream.Points {
 	pstep := 100
 	cmax := 65535
 	for {
-		for x := range xrange(-pmax, pmax, pstep) {
+		for _, x := range xrange(-pmax, pmax, pstep) {
 			w.Write(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax).Encode())
 		}
-		for y := range xrange(pmax, -pmax, -pstep) {
+		for _, y := range xrange(pmax, -pmax, -pstep) {
 			w.Write(etherdream.NewPoint(pmax, y, 0, cmax, 0, cmax).Encode())
 		}
-		for x := range xrange(pmax, -pmax, -pstep) {
+		for _, x := range xrange(pmax, -pmax, -pstep) {
 			w.Write(etherdream.NewPoint(x, -pmax, 0, 0, cmax, cmax).Encode())
 		}
-		for y := range xrange(-pmax, pmax, pstep) {
+		for _, y := range xrange(-pmax, pmax, pstep) {
 			w.Write(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax).Encode())
 		}
 		//log.Printf("Generated a frame")
@@ -71,11 +71,19 @@ func squarePointStream(w *io.PipeWriter) etherdream.Points {
 }
 
 func xrange(min, max, step int) []int {
-	ret := make([]int, (max-min)/step+1)
+	rng := max - min
+	ret := make([]int, rng/step+1)
 	iY := 0
-	for iX := min; iX <= max; iX += step {
+	for iX := min; rlogic(min, max, iX); iX += step {
 		ret[iY] = iX
 		iY++
 	}
 	return ret
+}
+
+func rlogic(min, max, iX int) bool {
+	if min < max {
+		return iX <= max
+	}
+	return iX >= max
 }
