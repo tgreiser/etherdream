@@ -1,3 +1,21 @@
+/*
+# Copyright 2016 Tim Greiser
+# Based on work by Jacob Potter, some comments are from his
+# protocol documents
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package etherdream
 
 import (
@@ -17,6 +35,8 @@ var mut = &sync.Mutex{}
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
 
+// ProtocolError indicates a protocol level error. I've
+// never seen one, but maybe you will.
 type ProtocolError struct {
 	Msg string
 }
@@ -25,6 +45,9 @@ func (e *ProtocolError) Error() string {
 	return e.Msg
 }
 
+// DAC is the interface to the Ether Dream Digital to
+// Analog Converter that turns network signals into
+// ILDA control singnals for a laser scanner.
 type DAC struct {
 	Host           string
 	Port           string
@@ -37,17 +60,22 @@ type DAC struct {
 	r              io.Reader
 }
 
-func NewDAC(host string) DAC {
+// NewDAC will connect to an Ether Dream device over TCP
+// or it will return an error
+func NewDAC(host string) (*DAC, error) {
 	// connect to the DAC over TCP
 	r, w := io.Pipe()
-	return DAC{Host: host, Port: "7765", Reader: r, Writer: w}
+	dac := &DAC{Host: host, Port: "7765", Reader: r, Writer: w}
+	err := dac.init()
+	return dac, err
 }
 
+// Close the network connection, you should. -- Yoda
 func (d *DAC) Close() {
 	d.conn.Close()
 }
 
-func (d *DAC) Init() error {
+func (d *DAC) init() error {
 	c, err := net.DialTimeout("tcp", d.Host+":"+d.Port, time.Second*15)
 	if err != nil {
 		return err
@@ -66,7 +94,7 @@ func (d *DAC) Init() error {
 	}
 
 	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
-	fmt.Printf("Firmware String: %v\n", d.FirmwareString)
+
 	return nil
 }
 
@@ -83,17 +111,18 @@ func (d *DAC) Read(l int) ([]byte, error) {
 	return ret, err
 }
 
+// ReadResponse reads the ACK/NACK response to a command
 func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	data, err := d.Read(22)
 	if err != nil {
-		fmt.Errorf("%v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return nil, err
 	}
 
 	resp := data[0]
 	cmdR := data[1]
 	status := NewDACStatus(data[2:])
-	fmt.Printf("Read response: %s %s\n", string(resp), string(cmdR))
+	//fmt.Printf("Read response: %s %s\n", string(resp), string(cmdR))
 
 	if cmdR != []byte(cmd)[0] {
 		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", string(cmd), string(cmdR))}
@@ -105,13 +134,20 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	return status, nil
 }
 
+// Send a command to the DAC
 func (d DAC) Send(cmd []byte) error {
 	_, err := d.conn.Write(cmd)
 	return err
 }
 
+// Begin Playback
+// This causes the DAC to begin producing output. lwm is
+// currently unused. rate is the number of points per second
+// to be read from the buffer. If the playback system was
+// Prepared and there was data in the buffer, then the DAC
+// will reply with ACK; otherwise, it replies with NAK - Invalid.
 func (d DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
-	var cmd []byte = make([]byte, 7)
+	var cmd = make([]byte, 7)
 	cmd[0] = []byte("b")[0]
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
@@ -121,8 +157,10 @@ func (d DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 	return s, err
 }
 
+// Update should not exist?
+// Maybe this is the 'q' command now.
 func (d DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
-	var cmd []byte = make([]byte, 7)
+	var cmd = make([]byte, 7)
 	cmd[0] = []byte("u")[0]
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
@@ -137,9 +175,7 @@ func (d DAC) Write(b []byte) (*DACStatus, error) {
 	binary.LittleEndian.PutUint16(cmd[1:3], l/PointSize)
 	copy(cmd[3:], b)
 
-	fmt.Printf("Writing cmd - length: 3 + %v\n", l)
 	d.Send(cmd)
-	fmt.Println("Reading response d")
 	return d.ReadResponse("d")
 }
 
@@ -155,13 +191,22 @@ func (d DAC) Stop() (*DACStatus, error) {
 	return d.ReadResponse("s")
 }
 
-// Emergency Stop command
+// EmergencyStop command causes the light engine to
+// enter the E-Stop state, regardless of its previous
+// state. It is always ACKed.
 func (d DAC) EmergencyStop() (*DACStatus, error) {
 	d.Send([]byte("\xFF"))
 	return d.ReadResponse("\xFF")
 }
 
-// Clear Emergency Stop command
+// ClearEmergencyStop command. If the light engine was in
+// E-Stop state due to an emergency stop command (either from
+// a local stop condition or over the network), then this
+// command resets it to be Ready. It is ACKed if the DAC was
+// previously in E-Stop; otherwise it is replied to with a NAK -
+// Invalid. If the condition that caused the emergency stop is
+// still active (E-Stop input still asserted, temperature still
+// out of bounds, etc.), then a NAK - Stop Condition is sent.
 func (d DAC) ClearEmergencyStop() (*DACStatus, error) {
 	d.Send([]byte("c"))
 	return d.ReadResponse("c")
@@ -173,14 +218,26 @@ func (d DAC) Ping() (*DACStatus, error) {
 	return d.ReadResponse("?")
 }
 
-// Start playing a stream generator and sending output to the laser
-func (d DAC) Play(stream PointStream) {
+// ShouldPrepare or not? State 1 and 2 are good. Some Flags
+// need prepare to reset an invalid state.
+func (d DAC) ShouldPrepare() bool {
+	return d.LastStatus.PlaybackState == 0 ||
+		d.LastStatus.PlaybackFlags&2 == 2 ||
+		d.LastStatus.PlaybackFlags&4 == 4
+}
+
+// Play a stream generator and begin sending output to the laser
+func (d DAC) Play(stream PointStream, debug bool) {
 	// First, prepare the stream
 	if d.LastStatus.PlaybackState == 2 {
-		fmt.Errorf("Already playing?!")
-	} else if d.LastStatus.PlaybackState == 0 {
+		if debug {
+			fmt.Printf("Error: Already playing?!")
+		}
+	} else if d.ShouldPrepare() {
 		d.Prepare()
-		fmt.Printf("DAC prepared: %v\n", d.LastStatus)
+		if debug {
+			fmt.Printf("DAC prepared: %v\n", d.LastStatus)
+		}
 	}
 
 	started := 0
@@ -200,16 +257,18 @@ func (d DAC) Play(stream PointStream) {
 		idx := 0
 		payloadSize := int(cap)
 
-		fmt.Printf("Buffer capacity: %v pts\n", cap)
+		if debug {
+			fmt.Printf("Buffer capacity: %v pts\n", cap)
+		}
 
 		for idx < payloadSize {
-			_, err := d.Reader.Read(by[idx:])
+			bdx := idx * int(PointSize)
+			_, err := d.Reader.Read(by[bdx:])
 			if err != nil {
 				fmt.Printf("Error playing stream: %v", err)
 				continue
 			}
 			idx++
-			//fmt.Printf("Read %v bytes from pipe. Cap: %v / %v\n", ln, idx, cap)
 
 		}
 
@@ -217,22 +276,32 @@ func (d DAC) Play(stream PointStream) {
 		t0 := time.Now()
 		d.Write(by)
 		t1 := time.Now()
-		fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
+		if debug {
+			fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
+		}
 
 		if started == 0 {
 			d.Begin(0, 30000)
 			started = 1
-			fmt.Println("Begin executed")
+			if debug {
+				fmt.Println("Begin executed")
+			}
 		}
-		fmt.Printf("Status: %v\n", d.LastStatus)
+		if debug {
+			fmt.Printf("Status: %v\n", d.LastStatus)
+		}
 		mut.Unlock()
 		runtime.Gosched()
 
 	}
 }
 
+// PointStream is the interface clients should implement to
+// generate points
 type PointStream func(w *io.PipeWriter) Points
 
+// Point is a step in the laser stream, X, Y, RGB, Intensity and
+// some other fields.
 type Point struct {
 	X     int16
 	Y     int16
@@ -245,6 +314,7 @@ type Point struct {
 	Flags uint16
 }
 
+// NewPoint wil instantiate a point from the basic attributes.
 func NewPoint(x, y, r, g, b, i int) *Point {
 	return &Point{
 		X: int16(x),
@@ -256,7 +326,7 @@ func NewPoint(x, y, r, g, b, i int) *Point {
 	}
 }
 
-// Pack color values into a 18 byte struct Point
+// Encode color values into a 18 byte struct Point
 //
 // Values must be specified for x, y, r, g, and b. If a value is not
 // passed in for the other fields, i will default to max(r, g, b); the
@@ -272,9 +342,7 @@ func (p Point) Encode() []byte {
 			p.I = p.B
 		}
 	}
-	var enc []byte = make([]byte, 18)
-
-	//fmt.Printf("Encoding %v\n", p)
+	var enc = make([]byte, 18)
 
 	binary.LittleEndian.PutUint16(enc[0:2], p.Flags)
 	// X and Y are actualy int16
@@ -291,6 +359,7 @@ func (p Point) Encode() []byte {
 	return enc
 }
 
+// Points - Point list
 type Points struct {
 	Points []Point
 }

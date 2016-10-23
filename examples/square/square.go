@@ -1,3 +1,21 @@
+/*
+# Copyright 2016 Tim Greiser
+# Based on work by Jacob Potter, some comments are from his
+# protocol documents
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 package main
 
 import (
@@ -17,15 +35,16 @@ func main() {
 
 	log.Printf("Found DAC at %v\n", addr)
 
-	dac := etherdream.NewDAC(addr.IP.String())
-	err = dac.Init()
+	dac, err := etherdream.NewDAC(addr.IP.String())
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer dac.Close()
 	log.Printf("Initialized:  %v\n", dac.LastStatus)
+	log.Printf("Firmware String: %v\n", dac.FirmwareString)
 
-	dac.Play(squarePointStream)
+	debug := false
+	dac.Play(squarePointStream, debug)
 }
 
 func squarePointStream(w *io.PipeWriter) etherdream.Points {
@@ -46,7 +65,7 @@ func squarePointStream(w *io.PipeWriter) etherdream.Points {
 		for y := range xrange(-pmax, pmax, pstep) {
 			w.Write(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax).Encode())
 		}
-		log.Printf("Generated a frame")
+		//log.Printf("Generated a frame")
 		runtime.Gosched() // yield for other go routines
 	}
 }
