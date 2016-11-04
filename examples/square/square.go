@@ -19,7 +19,6 @@
 package main
 
 import (
-	"io"
 	"log"
 	"runtime"
 
@@ -47,23 +46,23 @@ func main() {
 	dac.Play(squarePointStream, debug)
 }
 
-func squarePointStream(w *io.PipeWriter) etherdream.Points {
-	defer w.Close()
+func squarePointStream(dac *etherdream.DAC) {
+	defer dac.Writer.Close()
 	pmax := 15600
 	pstep := 100
 	cmax := 65535
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax).Encode())
+			dac.WritePoint(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax))
 		}
 		for _, y := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(pmax, y, 0, cmax, 0, cmax).Encode())
+			dac.WritePoint(etherdream.NewPoint(pmax, y, 0, cmax, 0, cmax))
 		}
 		for _, x := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(x, -pmax, 0, 0, cmax, cmax).Encode())
+			dac.WritePoint(etherdream.NewPoint(x, -pmax, 0, 0, cmax, cmax))
 		}
 		for _, y := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax).Encode())
+			dac.WritePoint(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax))
 		}
 		//log.Printf("Generated a frame")
 		runtime.Gosched() // yield for other go routines

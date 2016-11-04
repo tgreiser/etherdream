@@ -35,6 +35,12 @@ var mut = &sync.Mutex{}
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
 
+// PointBufferSize is the number of points to buffer from the stream
+// Should be at least 2x1799
+const PointBufferSize uint16 = 3640
+
+var PMax = PointSize * PointBufferSize
+
 // ProtocolError indicates a protocol level error. I've
 // never seen one, but maybe you will.
 type ProtocolError struct {
@@ -56,6 +62,7 @@ type DAC struct {
 	Reader         *io.PipeReader
 	Writer         *io.PipeWriter
 	buf            bytes.Buffer
+	pbuf           bytes.Buffer
 	conn           net.Conn
 	r              io.Reader
 }
@@ -226,8 +233,17 @@ func (d DAC) ShouldPrepare() bool {
 		d.LastStatus.PlaybackFlags&4 == 4
 }
 
+func (d *DAC) WritePoint(p *Point) {
+	for d.pbuf.Len() >= int(PMax) {
+		time.Sleep(time.Millisecond * 5)
+	}
+	if _, err := d.pbuf.Write(p.Encode()); err != nil {
+		fmt.Printf("Error writing point buffer: %v\n", err)
+	}
+}
+
 // Play a stream generator and begin sending output to the laser
-func (d DAC) Play(stream PointStream, debug bool) {
+func (d *DAC) Play(stream PointStream, debug bool) {
 	// First, prepare the stream
 	if d.LastStatus.PlaybackState == 2 {
 		if debug {
@@ -240,66 +256,69 @@ func (d DAC) Play(stream PointStream, debug bool) {
 		}
 	}
 
+	go stream(d)
+
 	started := 0
-	// Start stream
-	go stream(d.Writer)
+	by := make([]byte, 1799*PointSize)
+	for {
+		if d.pbuf.Len() > int(PMax/2) {
+			cap := (1799 - d.LastStatus.BufferFullness) * PointSize
+
+			mut.Lock()
+
+			t0 := time.Now()
+			_, err := d.pbuf.Read(by[:cap])
+			if err != nil {
+				fmt.Printf("Error reading points %v", err)
+			}
+			for iX := range by[cap:] {
+				by[int(cap)+iX] = 0x00
+			}
+			d.Write(by)
+			t1 := time.Now()
+			if debug {
+				fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
+			}
+
+			if started == 0 {
+				d.Begin(0, 30000)
+				started = 1
+				if debug {
+					fmt.Println("Begin executed")
+				}
+			}
+			if debug {
+				fmt.Printf("Status: %v\n", d.LastStatus)
+			}
+			mut.Unlock()
+		} else {
+			time.Sleep(time.Millisecond * 5)
+		}
+		runtime.Gosched()
+	}
+}
+
+// PopulatePBuf with encoded point data from the stream
+func (d *DAC) PopulatePBuf(stream PointStream, debug bool) {
+	// Start stream write
+	go stream(d)
 
 	for {
-		// Read calls from the pipe
-		cap := 1799 - d.LastStatus.BufferFullness
-
-		if cap < 100 {
-			time.Sleep(time.Millisecond * 5)
-			d.Ping()
-			continue
+		// Read points from the pipe
+		b := make([]byte, PointSize)
+		_, err := d.Reader.Read(b)
+		if err != nil {
+			fmt.Printf("Error playing stream: %v", err)
 		}
-
-		by := make([]byte, cap*PointSize)
-		idx := 0
-		payloadSize := int(cap)
-
-		if debug {
-			fmt.Printf("Buffer capacity: %v pts\n", cap)
-		}
-
-		for idx < payloadSize {
-			bdx := idx * int(PointSize)
-			_, err := d.Reader.Read(by[bdx:])
-			if err != nil {
-				fmt.Printf("Error playing stream: %v", err)
-				continue
-			}
-			idx++
-
-		}
-
 		mut.Lock()
-		t0 := time.Now()
-		d.Write(by)
-		t1 := time.Now()
-		if debug {
-			fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
-		}
-
-		if started == 0 {
-			d.Begin(0, 30000)
-			started = 1
-			if debug {
-				fmt.Println("Begin executed")
-			}
-		}
-		if debug {
-			fmt.Printf("Status: %v\n", d.LastStatus)
-		}
+		d.pbuf.Write(b)
 		mut.Unlock()
-		runtime.Gosched()
-
 	}
 }
 
 // PointStream is the interface clients should implement to
 // generate points
-type PointStream func(w *io.PipeWriter) Points
+type PointStream func(dac *DAC)
 
 // Point is a step in the laser stream, X, Y, RGB, Intensity and
 // some other fields.
