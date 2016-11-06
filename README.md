@@ -1,6 +1,6 @@
 # Go Ether Dream
 
-Go language interface to the Ether Dream laser DAC. This is a work of progress and not currently in a functional state. Check back soon.
+Go language interface to the Ether Dream laser DAC. This is a work of progress and currently in a functional alpha state. Check back soon for more examples.
 
 Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/)
 
