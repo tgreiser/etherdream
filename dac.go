@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"os"
 	"runtime"
@@ -35,6 +36,9 @@ var mut = &sync.Mutex{}
 
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
+
+// ColorMax is the maximum color/intensity value
+const ColorMax = 65535
 
 // ProtocolError indicates a protocol level error. I've
 // never seen one, but maybe you will.
@@ -323,6 +327,11 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		runtime.Gosched()
 
 	}
+}
+
+// ScaleColor returns the max color, scaled propotionately by a float
+func ScaleColor(f float64) int {
+	return int(math.Trunc(ColorMax * f))
 }
 
 // PointStream is the interface clients should implement to

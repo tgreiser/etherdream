@@ -53,7 +53,7 @@ func squarePointStream(w *io.PipeWriter) etherdream.Points {
 	defer w.Close()
 	pmax := 15600
 	pstep := 100
-	cmax := 25000 //65535
+	cmax := etherdream.ScaleColor(.75)
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
 			w.Write(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax).Encode())
