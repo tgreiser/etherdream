@@ -51,19 +51,31 @@ func pointStream(w *io.PipeWriter) etherdream.Points {
 	defer w.Close()
 
 	pstep := 100 // 30 and below can damage galvos
-	cmax := etherdream.ScaleColor(.3)
-	maxrad := 10260
-	rad := float64(maxrad / 3)
-	log.Printf("Radius: %v\n", rad)
+	cmax := etherdream.ScaleColor(.5)
+	maxrad := 10260 * 2
+	rad := maxrad
+	frame := 0
+	grow := false
 
 	for {
+		if rad <= 1 {
+			grow = true
+		} else if rad >= maxrad {
+			grow = false
+		}
+		if grow {
+			rad += 10
+		} else {
+			rad -= 10
+		}
 		for _, i := range xrange(0, pstep, 1) {
 			f := float64(i) / float64(pstep) * 2.0 * math.Pi
-			x := int(math.Cos(f) * rad)
-			y := int(math.Sin(f) * rad)
+			x := int(math.Cos(f) * float64(rad))
+			y := int(math.Sin(f) * float64(rad))
 			w.Write(etherdream.NewPoint(x, y, cmax, cmax, cmax, cmax).Encode())
 		}
 
+		frame++
 		//log.Printf("Generated a frame")
 		runtime.Gosched() // yield for other go routines
 	}
