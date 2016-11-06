@@ -34,26 +34,26 @@ func main() {
 	}
 
 	log.Printf("Found DAC at %v\n", addr)
-	log.Printf("BP: %v\n", bp)
+	log.Printf("BP: %v\n\n", bp)
 
 	dac, err := etherdream.NewDAC(addr.IP.String())
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer dac.Close()
-	log.Printf("Initialized:  %v\n", dac.LastStatus)
-	log.Printf("Firmware String: %v\n", dac.FirmwareString)
+	log.Printf("Initialized:  %v\n\n", dac.LastStatus)
+	log.Printf("Firmware String: %v\n\n", dac.FirmwareString)
 
-	dac.Measure(squarePointStream)
-	//debug := false
-	//dac.Play(squarePointStream, debug)
+	//dac.Measure(squarePointStream)
+	debug := false
+	dac.Play(squarePointStream, debug)
 }
 
 func squarePointStream(w *io.PipeWriter) etherdream.Points {
 	defer w.Close()
 	pmax := 15600
 	pstep := 100
-	cmax := 15000 //65535
+	cmax := 25000 //65535
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
 			w.Write(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax).Encode())

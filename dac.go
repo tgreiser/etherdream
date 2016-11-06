@@ -124,7 +124,7 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	resp := data[0]
 	cmdR := data[1]
 	status := NewDACStatus(data[2:])
-	//fmt.Printf("Read response: %s %s\n", string(resp), string(cmdR))
+	//fmt.Printf("\nRead response: %s %s\n", string(resp), string(cmdR))
 
 	if cmdR != []byte(cmd)[0] {
 		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", string(cmd), string(cmdR))}
@@ -148,20 +148,20 @@ func (d DAC) Send(cmd []byte) error {
 // to be read from the buffer. If the playback system was
 // Prepared and there was data in the buffer, then the DAC
 // will reply with ACK; otherwise, it replies with NAK - Invalid.
-func (d DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
+func (d *DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 	var cmd = make([]byte, 7)
 	cmd[0] = []byte("b")[0]
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
 	d.Send(cmd)
 	s, err := d.ReadResponse("b")
-	fmt.Println(s)
+	fmt.Printf("Begin: %v\n\n", s)
 	return s, err
 }
 
 // Update should not exist?
 // Maybe this is the 'q' command now.
-func (d DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
+func (d *DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
 	var cmd = make([]byte, 7)
 	cmd[0] = []byte("u")[0]
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
@@ -170,7 +170,7 @@ func (d DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
 	return d.ReadResponse("u")
 }
 
-func (d DAC) Write(b []byte) (*DACStatus, error) {
+func (d *DAC) Write(b []byte) (*DACStatus, error) {
 	l := uint16(len(b))
 	cmd := make([]byte, l+3)
 	cmd[0] = []byte("d")[0]
@@ -182,13 +182,13 @@ func (d DAC) Write(b []byte) (*DACStatus, error) {
 }
 
 // Prepare command
-func (d DAC) Prepare() (*DACStatus, error) {
+func (d *DAC) Prepare() (*DACStatus, error) {
 	d.Send([]byte("p"))
 	return d.ReadResponse("p")
 }
 
 // Stop command
-func (d DAC) Stop() (*DACStatus, error) {
+func (d *DAC) Stop() (*DACStatus, error) {
 	d.Send([]byte("s"))
 	return d.ReadResponse("s")
 }
@@ -196,7 +196,7 @@ func (d DAC) Stop() (*DACStatus, error) {
 // EmergencyStop command causes the light engine to
 // enter the E-Stop state, regardless of its previous
 // state. It is always ACKed.
-func (d DAC) EmergencyStop() (*DACStatus, error) {
+func (d *DAC) EmergencyStop() (*DACStatus, error) {
 	d.Send([]byte("\xFF"))
 	return d.ReadResponse("\xFF")
 }
@@ -209,13 +209,13 @@ func (d DAC) EmergencyStop() (*DACStatus, error) {
 // Invalid. If the condition that caused the emergency stop is
 // still active (E-Stop input still asserted, temperature still
 // out of bounds, etc.), then a NAK - Stop Condition is sent.
-func (d DAC) ClearEmergencyStop() (*DACStatus, error) {
+func (d *DAC) ClearEmergencyStop() (*DACStatus, error) {
 	d.Send([]byte("c"))
 	return d.ReadResponse("c")
 }
 
 // Ping command
-func (d DAC) Ping() (*DACStatus, error) {
+func (d *DAC) Ping() (*DACStatus, error) {
 	d.Send([]byte("?"))
 	return d.ReadResponse("?")
 }
@@ -228,16 +228,16 @@ func (d DAC) ShouldPrepare() bool {
 		d.LastStatus.PlaybackFlags&4 == 4
 }
 
-// Measure how long it takes to play 100,000 points
+// Measure how long it takes to play 10,000 points
 func (d *DAC) Measure(stream PointStream) {
 	t0 := time.Now()
 
-	go d.Play(stream, false)
+	go d.Play(stream, true)
 
 	for {
 		if d.PointsPlayed >= 100000 {
 			t1 := time.Now()
-			fmt.Printf("%v took %v", d.PointsPlayed, t1.Sub(t0).String())
+			fmt.Printf("%v took %v\n", d.PointsPlayed, t1.Sub(t0).String())
 			os.Exit(0)
 		}
 		runtime.Gosched()
@@ -252,9 +252,12 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 			fmt.Printf("Error: Already playing?!")
 		}
 	} else if d.ShouldPrepare() {
-		d.Prepare()
+		st, err := d.Prepare()
+		if err != nil {
+			fmt.Printf("ERROR: Failed to prepare: %v\n\n", err)
+		}
 		if debug {
-			fmt.Printf("DAC prepared: %v\n", d.LastStatus)
+			fmt.Printf("DAC prepared: %v\n\n", st)
 		}
 	}
 
@@ -292,25 +295,30 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		}
 
 		mut.Lock()
-		t0 := time.Now()
-		d.Write(by)
-
-		if debug {
-			t1 := time.Now()
-			fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
+		st, err := d.Write(by)
+		if err != nil {
+			fmt.Printf("ERROR: %v\n", err)
 		}
+
 		d.PointsPlayed += len(by) / int(PointSize)
+		if debug {
+			fmt.Printf("Points: %v\nStatus: %v\n", d.PointsPlayed, st)
+		}
 
 		if started == 0 {
-			d.Begin(0, 30000)
+			st, err := d.Begin(0, 30000)
+			if err != nil {
+				fmt.Printf("ERROR on Begin: %v\n\n", err)
+			}
 			started = 1
 			if debug {
-				fmt.Println("Begin executed")
+				fmt.Printf("\nBegin executed: %v\n", st)
 			}
 		}
 		if debug {
-			fmt.Printf("Status: %v\n", d.LastStatus)
+			fmt.Println()
 		}
+
 		mut.Unlock()
 		runtime.Gosched()
 
