@@ -1,7 +1,8 @@
 /*
 # Copyright 2016 Tim Greiser
-# Based on work by Brendan Thomas
-
+# Based on work by Jacob Potter, some comments are from his
+# protocol documents. Example code from Brandon Thomas.
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, version 3.
@@ -49,29 +50,44 @@ func main() {
 func pointStream(w *io.PipeWriter) etherdream.Points {
 	defer w.Close()
 
-	pstep := 100 // 30 and below can damage galvos
 	cmax := etherdream.ScaleColor(.5)
-	maxrad := 10260 * 2
-	rad := maxrad
+	maxrad := 22600
+	rad := int(maxrad / 100)
+	var spiralgrowth float64 = 14
+	blankPts := 25
 	frame := 0
-	grow := false
 
 	for {
-		if rad <= 1 {
-			grow = true
-		} else if rad >= maxrad {
-			grow = false
-		}
-		if grow {
-			rad += 10
-		} else {
-			rad -= 10
-		}
-		for _, i := range xrange(0, pstep, 1) {
-			f := float64(i) / float64(pstep) * 2.0 * math.Pi
-			x := int(math.Cos(f) * float64(rad))
-			y := int(math.Sin(f) * float64(rad))
+		var j float64
+
+		for _, i := range xrange(0, 1000, 1) {
+			f := float64(i) / 1000.0 * 2.0 * math.Pi * spiralgrowth
+			j = f
+			x := int(j * math.Cos(f) * float64(rad))
+			y := int(j * math.Sin(f) * float64(rad))
 			w.Write(etherdream.NewPoint(x, y, cmax, cmax, cmax, cmax).Encode())
+		}
+
+		// blank and return to origin
+		f := 1000.0 / 1000.0 * 2.0 * math.Pi * spiralgrowth
+		j = f
+		x := int(j * math.Cos(f) * float64(rad))
+		y := int(j * math.Sin(f) * float64(rad))
+
+		// first lets throw in a few without moving
+		for i := 1; i <= 25; i++ {
+			w.Write(etherdream.NewPoint(x-x/blankPts, y-y/blankPts, 0, 0, 0, 0).Encode())
+		}
+
+		// move back to origin
+		for i := 1; i <= blankPts; i++ {
+			//log.Printf("x %v y %v\n", x-x*i/blankPts, y-y*i/blankPts)
+			w.Write(etherdream.NewPoint(x-x*i/blankPts, y-y*i/blankPts, 0, 0, 0, 0).Encode())
+		}
+
+		// few more still points
+		for i := 1; i <= 25; i++ {
+			w.Write(etherdream.NewPoint(x-x*blankPts/blankPts, y-y*blankPts/blankPts, 0, 0, 0, 0).Encode())
 		}
 
 		frame++
