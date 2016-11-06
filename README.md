@@ -4,6 +4,8 @@ Go language interface to the Ether Dream laser DAC. This is a work of progress a
 
 Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/) and [echelon](https://github.com/echelon).
 
+![Spiral](http://prim8.net/art/spiral.jpg)
+
 ## Setup
 
 This assumes you are plugged in to your ether dream via ethernet cable. You
