@@ -55,7 +55,7 @@ func (st DACStatus) String() string {
 	return fmt.Sprintf("Light engine: state %d, flags 0x%x\n", st.LightEngineState, st.LightEngineFlags) +
 		fmt.Sprintf("Playback: state %d, flags 0x%x\n", st.PlaybackState, st.PlaybackFlags) +
 		fmt.Sprintf("Buffer: %d points\n", st.BufferFullness) +
-		fmt.Sprintf("Playback: %d kpps, %d points played", st.PointRate, st.PointCount) +
+		fmt.Sprintf("Playback: %d pps, %d points played", st.PointRate, st.PointCount) +
 		fmt.Sprintf("Source: %d, flags 0x%x", st.Source, st.SourceFlags)
 }
 
