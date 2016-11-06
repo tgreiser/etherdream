@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"runtime"
 	"strings"
 	"sync"
@@ -61,6 +62,7 @@ type DAC struct {
 	LastStatus     *DACStatus
 	Reader         *io.PipeReader
 	Writer         *io.PipeWriter
+	PointsPlayed   int
 	buf            bytes.Buffer
 	pbuf           bytes.Buffer
 	conn           net.Conn
@@ -242,6 +244,22 @@ func (d *DAC) WritePoint(p *Point) {
 	}
 }
 
+// Measure how long it takes to play 100,000 points
+func (d *DAC) Measure(stream PointStream) {
+	t0 := time.Now()
+
+	go d.Play(stream, false)
+
+	for {
+		if d.PointsPlayed >= 100000 {
+			t1 := time.Now()
+			fmt.Printf("%v took %v", d.PointsPlayed, t1.Sub(t0).String())
+			os.Exit(0)
+		}
+		runtime.Gosched()
+	}
+}
+
 // Play a stream generator and begin sending output to the laser
 func (d *DAC) Play(stream PointStream, debug bool) {
 	// First, prepare the stream
@@ -275,10 +293,13 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 				by[int(cap)+iX] = 0x00
 			}
 			d.Write(by)
-			t1 := time.Now()
+
 			if debug {
+				t1 := time.Now()
 				fmt.Printf("%v bytes took %v\n", len(by), t1.Sub(t0).String())
 			}
+
+			d.PointsPlayed += len(by) / int(PointSize)
 
 			if started == 0 {
 				d.Begin(0, 30000)

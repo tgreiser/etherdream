@@ -42,15 +42,16 @@ func main() {
 	log.Printf("Initialized:  %v\n", dac.LastStatus)
 	log.Printf("Firmware String: %v\n", dac.FirmwareString)
 
-	debug := false
-	dac.Play(squarePointStream, debug)
+	dac.Measure(squarePointStream)
+	//debug := false
+	//dac.Play(squarePointStream, debug)
 }
 
 func squarePointStream(dac *etherdream.DAC) {
 	defer dac.Writer.Close()
 	pmax := 15600
 	pstep := 100
-	cmax := 65535
+	cmax := 15000 //65535
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
 			dac.WritePoint(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax))
@@ -65,6 +66,7 @@ func squarePointStream(dac *etherdream.DAC) {
 			dac.WritePoint(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax))
 		}
 		//log.Printf("Generated a frame")
+		//log.Printf("%v", dac.PointsPlayed)
 		runtime.Gosched() // yield for other go routines
 	}
 }
