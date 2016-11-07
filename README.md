@@ -15,3 +15,10 @@ need to Find a DAC, you can use outbound only.
 
 - Outbound rule: TCP port 7765
 - Inbound rule: UDP port 7654
+
+## Install
+
+Assuming you have Go set up and installed, just:
+
+    go get github.com/tgreiser/etherdream
+    go run github.com/tgreiser/etherdream/examples/square/square.go
