@@ -1,6 +1,7 @@
 /*
 # Copyright 2016 Tim Greiser
-# Based on work by Brendan Thomas
+# Based on work by Jacob Potter, some comments are from his
+# protocol documents. Example code from Brandon Thomas.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
