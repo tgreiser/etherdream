@@ -22,4 +22,5 @@ Assuming you have Go set up and installed, just:
 
     go get github.com/tgreiser/etherdream
     # cd to the etherdream directory
+    
     go run examples/square/square.go
