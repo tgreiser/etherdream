@@ -21,4 +21,5 @@ need to Find a DAC, you can use outbound only.
 Assuming you have Go set up and installed, just:
 
     go get github.com/tgreiser/etherdream
-    go run github.com/tgreiser/etherdream/examples/square/square.go
+    # cd to the etherdream directory
+    go run examples/square/square.go
