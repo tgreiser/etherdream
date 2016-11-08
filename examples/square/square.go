@@ -49,7 +49,7 @@ func main() {
 	dac.Play(squarePointStream, debug)
 }
 
-func squarePointStream(w *io.PipeWriter) etherdream.Points {
+func squarePointStream(w *io.PipeWriter) {
 	defer w.Close()
 	pmax := 15600
 	pstep := 100

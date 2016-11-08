@@ -47,7 +47,7 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
-func pointStream(w *io.PipeWriter) etherdream.Points {
+func pointStream(w *io.PipeWriter) {
 	defer w.Close()
 
 	pstep := 100 // 30 and below can damage galvos

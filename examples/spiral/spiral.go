@@ -47,7 +47,7 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
-func pointStream(w *io.PipeWriter) etherdream.Points {
+func pointStream(w *io.PipeWriter) {
 	defer w.Close()
 
 	cmax := etherdream.ScaleColor(.5)

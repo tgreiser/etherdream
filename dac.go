@@ -336,7 +336,7 @@ func ScaleColor(f float64) int {
 
 // PointStream is the interface clients should implement to
 // generate points
-type PointStream func(w *io.PipeWriter) Points
+type PointStream func(w *io.PipeWriter)
 
 // Point is a step in the laser stream, X, Y, RGB, Intensity and
 // some other fields.
