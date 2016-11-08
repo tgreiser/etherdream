@@ -292,7 +292,7 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 			_, err := d.Reader.Read(by[bdx:])
 			if err != nil {
 				fmt.Printf("Error playing stream: %v", err)
-				continue
+				break
 			}
 			idx++
 

@@ -26,3 +26,5 @@ _testmain.go
 # tmp files
 .*.swp
 *~
+debug
+.vscode
