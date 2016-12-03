@@ -23,7 +23,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"os"
 	"runtime"
@@ -36,9 +35,6 @@ var mut = &sync.Mutex{}
 
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
-
-// ColorMax is the maximum color/intensity value
-const ColorMax = 65535
 
 // ProtocolError indicates a protocol level error. I've
 // never seen one, but maybe you will.
@@ -327,79 +323,6 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		runtime.Gosched()
 
 	}
-}
-
-// ScaleColor returns the max color, scaled propotionately by a float
-func ScaleColor(f float64) int {
-	return int(math.Trunc(ColorMax * f))
-}
-
-// PointStream is the interface clients should implement to
-// generate points
-type PointStream func(w *io.PipeWriter)
-
-// Point is a step in the laser stream, X, Y, RGB, Intensity and
-// some other fields.
-type Point struct {
-	X     int16
-	Y     int16
-	R     uint16
-	G     uint16
-	B     uint16
-	I     uint16
-	U1    uint16
-	U2    uint16
-	Flags uint16
-}
-
-// NewPoint wil instantiate a point from the basic attributes.
-func NewPoint(x, y, r, g, b, i int) *Point {
-	return &Point{
-		X: int16(x),
-		Y: int16(y),
-		R: uint16(r),
-		G: uint16(g),
-		B: uint16(b),
-		I: uint16(i),
-	}
-}
-
-// Encode color values into a 18 byte struct Point
-//
-// Values must be specified for x, y, r, g, and b. If a value is not
-// passed in for the other fields, i will default to max(r, g, b); the
-// rest default to zero.
-func (p Point) Encode() []byte {
-	mut.Lock()
-	if p.I <= 0 {
-		p.I = p.R
-		if p.G > p.I {
-			p.I = p.G
-		}
-		if p.B > p.I {
-			p.I = p.B
-		}
-	}
-	var enc = make([]byte, 18)
-
-	binary.LittleEndian.PutUint16(enc[0:2], p.Flags)
-	// X and Y are actualy int16
-	binary.LittleEndian.PutUint16(enc[2:4], uint16(p.X))
-	binary.LittleEndian.PutUint16(enc[4:6], uint16(p.Y))
-
-	binary.LittleEndian.PutUint16(enc[6:8], p.R)
-	binary.LittleEndian.PutUint16(enc[8:10], p.G)
-	binary.LittleEndian.PutUint16(enc[10:12], p.B)
-	binary.LittleEndian.PutUint16(enc[12:14], p.I)
-	binary.LittleEndian.PutUint16(enc[14:16], p.U1)
-	binary.LittleEndian.PutUint16(enc[16:18], p.U2)
-	mut.Unlock()
-	return enc
-}
-
-// Points - Point list
-type Points struct {
-	Points []Point
 }
 
 // FindFirstDAC starts a UDP server to listen for broadcast packets on your network. Return the UDPAddr

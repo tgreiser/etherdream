@@ -25,6 +25,8 @@ import (
 
 	"math"
 
+	"image/color"
+
 	"github.com/tgreiser/etherdream"
 )
 
@@ -51,7 +53,7 @@ func pointStream(w *io.PipeWriter) {
 	defer w.Close()
 
 	pstep := 100 // 30 and below can damage galvos
-	cmax := etherdream.ScaleColor(.5)
+	c := color.RGBA{0x66, 0x33, 0x00, 0xFF}
 	maxrad := 10260 * 2
 	rad := maxrad
 	frame := 0
@@ -72,7 +74,7 @@ func pointStream(w *io.PipeWriter) {
 			f := float64(i) / float64(pstep) * 2.0 * math.Pi
 			x := int(math.Cos(f) * float64(rad))
 			y := int(math.Sin(f) * float64(rad))
-			w.Write(etherdream.NewPoint(x, y, cmax, cmax, cmax, cmax).Encode())
+			w.Write(etherdream.NewPoint(x, y, c).Encode())
 		}
 
 		frame++
