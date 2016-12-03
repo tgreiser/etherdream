@@ -74,6 +74,7 @@ func pointStream(w *io.PipeWriter) {
 
 		// compute 2D paths that depict the 3D scene
 		paths := scene.Render(eye, center, up, width, height, fovy, znear, zfar, step)
+		paths.Optimize()
 
 		lp := len(paths)
 		for iX := 0; iX < lp; iX++ {
@@ -82,10 +83,11 @@ func pointStream(w *io.PipeWriter) {
 			if iX+1 < lp {
 				p2 = paths[iX+1]
 			}
-			//log.Printf("%v - %v\n", p, cmax)
+
 			etherdream.DrawPath(w, p, c)
-			etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
-			//w.Write(etherdream.NewPoint(pt.X, pt.Y, cmax, cmax, cmax, cmax).Encode())
+			if p2[0].Distance(p[1]) > 0 {
+				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
+			}
 		}
 
 		frame++
