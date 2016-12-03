@@ -22,6 +22,8 @@ import (
 	"io"
 	"log"
 
+	"image/color"
+
 	"github.com/tgreiser/etherdream"
 	"github.com/tgreiser/ln/ln"
 )
@@ -65,13 +67,14 @@ func pointStream(w *io.PipeWriter) {
 	zfar := 10.0      // far z plane
 	step := 0.01      // how finely to chop the paths for visibility testing
 
-	cmax := etherdream.ScaleColor(.5)
+	c := color.RGBA{0x88, 0x00, 0x00, 0xFF}
 	frame := 0
 
 	for {
 
 		// compute 2D paths that depict the 3D scene
 		paths := scene.Render(eye, center, up, width, height, fovy, znear, zfar, step)
+		paths.Optimize()
 
 		lp := len(paths)
 		for iX := 0; iX < lp; iX++ {
@@ -80,10 +83,11 @@ func pointStream(w *io.PipeWriter) {
 			if iX+1 < lp {
 				p2 = paths[iX+1]
 			}
-			//log.Printf("%v - %v\n", p, cmax)
-			etherdream.DrawPath(w, p, cmax)
-			etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
-			//w.Write(etherdream.NewPoint(pt.X, pt.Y, cmax, cmax, cmax, cmax).Encode())
+
+			etherdream.DrawPath(w, p, c)
+			if p2[0].Distance(p[1]) > 0 {
+				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
+			}
 		}
 
 		frame++

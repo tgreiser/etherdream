@@ -21,13 +21,11 @@ package main
 import (
 	"io"
 	"log"
-	"runtime"
-
-	"math"
 
 	"image/color"
 
 	"github.com/tgreiser/etherdream"
+	"github.com/tgreiser/ln/ln"
 )
 
 func main() {
@@ -49,54 +47,50 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
+func line(x, y, z, x2, y2, z2 float64) ln.Path {
+	return ln.Path{ln.Vector{x, y, z}, ln.Vector{x2, y2, z2}}
+}
+
 func pointStream(w *io.PipeWriter) {
 	defer w.Close()
 
-	pstep := 100 // 30 and below can damage galvos
-	c := color.RGBA{0x66, 0x33, 0x00, 0xFF}
-	maxrad := 10260 * 2
-	rad := maxrad
+	c1 := color.RGBA{0x88, 0x00, 0x77, 0xFF}
+	c2 := color.RGBA{0x00, 0x88, 0x00, 0xFF}
 	frame := 0
-	grow := false
 
 	for {
-		if rad <= 1 {
-			grow = true
-		} else if rad >= maxrad {
-			grow = false
+
+		// compute 2D paths that depict the 3D scene
+		paths := ln.Paths{
+			line(0, 0, 0, 0, 5000, 0),
+			line(5000, 0, 0, 5000, 5000, 0),
+			line(10000, 0, 0, 10000, 5000, 0),
+			line(12000, 0, 0, 12000, 5000, 0),
+			line(14000, 0, 0, 14000, 5000, 0),
+			line(14000, 5000, 0, 0, 5000, 0),
+			line(0, 0, 0, 14000, 0, 0),
 		}
-		if grow {
-			rad += 10
-		} else {
-			rad -= 10
-		}
-		for _, i := range xrange(0, pstep, 1) {
-			f := float64(i) / float64(pstep) * 2.0 * math.Pi
-			x := int(math.Cos(f) * float64(rad))
-			y := int(math.Sin(f) * float64(rad))
-			w.Write(etherdream.NewPoint(x, y, c).Encode())
+
+		lp := len(paths)
+		for iX := 0; iX < lp; iX++ {
+			p := paths[iX]
+			p2 := paths[0]
+			if iX+1 < lp {
+				p2 = paths[iX+1]
+			}
+			//log.Printf("%v - %v\n", p, cmax)
+			c := c1
+			if iX%2 == 0 {
+				c = c2
+			}
+			etherdream.DrawPath(w, p, c)
+			//etherdream.ChopPath(w, p, c)
+			if p2[0].Distance(p[1]) > 0 {
+				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
+			}
+			//w.Write(etherdream.NewPoint(pt.X, pt.Y, cmax, cmax, cmax, cmax).Encode())
 		}
 
 		frame++
-		//log.Printf("Generated a frame")
-		runtime.Gosched() // yield for other go routines
 	}
-}
-
-func xrange(min, max, step int) []int {
-	rng := max - min
-	ret := make([]int, rng/step+1)
-	iY := 0
-	for iX := min; rlogic(min, max, iX); iX += step {
-		ret[iY] = iX
-		iY++
-	}
-	return ret
-}
-
-func rlogic(min, max, iX int) bool {
-	if min < max {
-		return iX <= max
-	}
-	return iX >= max
 }

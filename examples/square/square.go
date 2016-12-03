@@ -21,7 +21,8 @@ package main
 import (
 	"io"
 	"log"
-	"runtime"
+
+	"image/color"
 
 	"github.com/tgreiser/etherdream"
 )
@@ -53,22 +54,19 @@ func squarePointStream(w *io.PipeWriter) {
 	defer w.Close()
 	pmax := 15600
 	pstep := 100
-	cmax := etherdream.ScaleColor(.75)
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(x, pmax, cmax, 0, 0, cmax).Encode())
+			w.Write(etherdream.NewPoint(x, pmax, color.RGBA{0xff, 0x00, 0x00, 0xff}).Encode())
 		}
 		for _, y := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(pmax, y, 0, cmax, 0, cmax).Encode())
+			w.Write(etherdream.NewPoint(pmax, y, color.RGBA{0x00, 0xff, 0x00, 0xff}).Encode())
 		}
 		for _, x := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(x, -pmax, 0, 0, cmax, cmax).Encode())
+			w.Write(etherdream.NewPoint(x, -pmax, color.RGBA{0x00, 0x00, 0xff, 0xff}).Encode())
 		}
 		for _, y := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(-pmax, y, cmax, cmax, cmax, cmax).Encode())
+			w.Write(etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff}).Encode())
 		}
-		//log.Printf("Generated a frame")
-		runtime.Gosched() // yield for other go routines
 	}
 }
 
