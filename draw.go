@@ -38,19 +38,23 @@ func LineSteps(p ln.Path) float64 {
 }
 
 // LineQuality controls the resolution of your lines. Lower is more precise, but more flicker. Higher
-// will be smoother playback, but there may be gaps around corners. Try values 30-60.
-var LineQuality = 50.0
+// will be smoother playback, but there may be gaps around corners. Try values 30-80.
+var LineQuality = 100.0
 
 // LerpSegments returns the number of segments to interpolate the path over
-func LerpSegments(p ln.Path) float64 {
-	return p[0].Distance(p[1]) / LineQuality
+func LerpSegments(p ln.Path, quality float64) float64 {
+	return p[0].Distance(p[1]) / quality
 }
 
 // DrawPath will use linear interpolation to draw fn+1 points along the path (fn segments)
-func DrawPath(w *io.PipeWriter, p ln.Path, c color.Color) {
+// qual will override the LineQuality (see above).
+func DrawPath(w *io.PipeWriter, p ln.Path, c color.Color, qual float64) {
+	if qual == 0.0 {
+		qual = LineQuality
+	}
 	dist := p[1].Sub(p[0])
 
-	fn := LerpSegments(p)
+	fn := LerpSegments(p, qual)
 	for iX := 0.0; iX < fn; iX++ {
 		x := dist.X * (iX / fn)
 		y := dist.Y * (iX / fn)
