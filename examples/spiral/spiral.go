@@ -21,11 +21,13 @@ package main
 import (
 	"io"
 	"log"
-	"runtime"
 
 	"math"
 
+	"image/color"
+
 	"github.com/tgreiser/etherdream"
+	"github.com/tgreiser/ln/ln"
 )
 
 func main() {
@@ -50,11 +52,10 @@ func main() {
 func pointStream(w *io.PipeWriter) {
 	defer w.Close()
 
-	cmax := etherdream.ScaleColor(.5)
+	c := color.RGBA{0x88, 0x00, 0x55, 0xFF}
 	maxrad := 22600
 	rad := int(maxrad / 100)
 	var spiralgrowth float64 = 14
-	blankPts := 25
 	frame := 0
 
 	for {
@@ -65,34 +66,18 @@ func pointStream(w *io.PipeWriter) {
 			j = f
 			x := int(j * math.Cos(f) * float64(rad))
 			y := int(j * math.Sin(f) * float64(rad))
-			w.Write(etherdream.NewPoint(x, y, cmax, cmax, cmax, cmax).Encode())
+			w.Write(etherdream.NewPoint(x, y, c).Encode())
 		}
 
 		// blank and return to origin
 		f := 1000.0 / 1000.0 * 2.0 * math.Pi * spiralgrowth
 		j = f
-		x := int(j * math.Cos(f) * float64(rad))
-		y := int(j * math.Sin(f) * float64(rad))
-
-		// first lets throw in a few without moving
-		for i := 1; i <= 25; i++ {
-			w.Write(etherdream.NewPoint(x-x/blankPts, y-y/blankPts, 0, 0, 0, 0).Encode())
-		}
-
-		// move back to origin
-		for i := 1; i <= blankPts; i++ {
-			//log.Printf("x %v y %v\n", x-x*i/blankPts, y-y*i/blankPts)
-			w.Write(etherdream.NewPoint(x-x*i/blankPts, y-y*i/blankPts, 0, 0, 0, 0).Encode())
-		}
-
-		// few more still points
-		for i := 1; i <= 25; i++ {
-			w.Write(etherdream.NewPoint(x-x*blankPts/blankPts, y-y*blankPts/blankPts, 0, 0, 0, 0).Encode())
-		}
+		x := j * math.Cos(f) * float64(rad)
+		y := j * math.Sin(f) * float64(rad)
+		p := ln.Path{ln.Vector{x, y, 0}, ln.Vector{0, 0, 0}}
+		etherdream.BlankPath(w, p)
 
 		frame++
-		//log.Printf("Generated a frame")
-		runtime.Gosched() // yield for other go routines
 	}
 }
 
