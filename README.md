@@ -1,6 +1,6 @@
 # Go Ether Dream
 
-Go language interface to the Ether Dream laser DAC. Current features: blanking, basic path optimization, quality (trade resolution for frame rate) and 3D scene rendering via [ln](https://github.com/tgreiser/ln).
+Go language interface to the Ether Dream laser DAC. Current features: blanking, basic path optimization, quality (trade resolution for frame rate) and 3D scene rendering via [ln](https://github.com/tgreiser/ln). For an introduction to laser projectors and programming, see: [Laser Hack 101 presentation slides](https://github.com/tgreiser/etherdream-touch-designer/blob/master/laser_hack_101.pdf).
 
 Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/), [echelon](https://github.com/echelon) and [fogleman](https://github.com/fogleman)
 
