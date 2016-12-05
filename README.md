@@ -1,8 +1,8 @@
 # Go Ether Dream
 
-Go language interface to the Ether Dream laser DAC. This is a work of progress and currently in a functional alpha state. Check back soon for more examples.
+Go language interface to the Ether Dream laser DAC. Current features: blanking, basic path optimization, quality (trade resolution for frame rate) and 3D scene rendering via [ln](https://github.com/tgreiser/ln).
 
-Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/) and [echelon](https://github.com/echelon).
+Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/), [echelon](https://github.com/echelon) and [fogleman](https://github.com/fogleman)
 
 ![Spiral](http://prim8.net/art/spiral.jpg)
 
