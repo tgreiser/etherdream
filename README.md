@@ -23,7 +23,77 @@ Assuming you have Go set up and installed, just:
     go get github.com/tgreiser/etherdream
     # cd to the etherdream directory
     
+You can run any of the examples like:
+
     go run examples/square/square.go
+    
+## Connecting
+
+If you have opened the necessary ports, the Ether Dream will broadcast it's identity on the network. You just have to connect to it and provide a [PointStream](https://godoc.org/github.com/tgreiser/etherdream#PointStream)
+
+    func main() {
+        log.Printf("Listening...\n")
+        addr, bp, err := etherdream.FindFirstDAC()
+        if err != nil {
+            log.Fatalf("Network error: %v", err)
+        }
+
+        log.Printf("Found DAC at %v\n", addr)
+        log.Printf("BP: %v\n\n", bp)
+
+        dac, err := etherdream.NewDAC(addr.IP.String())
+        if err != nil {
+            log.Fatal(err)
+        }
+        defer dac.Close()
+        log.Printf("Initialized:  %v\n\n", dac.LastStatus)
+        log.Printf("Firmware String: %v\n\n", dac.FirmwareString)
+
+        debug := false
+        dac.Play(squarePointStream, debug)
+    }
+
+## Point Streams
+
+Point streams should contain an infinite loop that will use the PipeWriter interface to output the points to the DAC.
+
+    func squarePointStream(w *io.PipeWriter) {
+        defer w.Close()
+        pmax := 15600
+        pstep := 100
+        for {
+            for _, x := range xrange(-pmax, pmax, pstep) {
+                w.Write(etherdream.NewPoint(x, pmax, color.RGBA{0xff, 0x00, 0x00, 0xff}).Encode())
+            }
+            for _, y := range xrange(pmax, -pmax, -pstep) {
+                w.Write(etherdream.NewPoint(pmax, y, color.RGBA{0x00, 0xff, 0x00, 0xff}).Encode())
+            }
+            for _, x := range xrange(pmax, -pmax, -pstep) {
+                w.Write(etherdream.NewPoint(x, -pmax, color.RGBA{0x00, 0x00, 0xff, 0xff}).Encode())
+            }
+            for _, y := range xrange(-pmax, pmax, pstep) {
+                w.Write(etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff}).Encode())
+            }
+        }
+    }
+
+    func xrange(min, max, step int) []int {
+        rng := max - min
+        ret := make([]int, rng/step+1)
+        iY := 0
+        for iX := min; rlogic(min, max, iX); iX += step {
+            ret[iY] = iX
+            iY++
+        }
+        return ret
+    }
+
+    func rlogic(min, max, iX int) bool {
+        if min < max {
+            return iX <= max
+        }
+        return iX >= max
+    }
 
 ## Resources
 
