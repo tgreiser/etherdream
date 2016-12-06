@@ -49,7 +49,7 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
-func pointStream(w *io.PipeWriter) {
+func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
 	pstep := 100 // 30 and below can damage galvos

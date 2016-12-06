@@ -45,12 +45,11 @@ func main() {
 	log.Printf("Initialized:  %v\n\n", dac.LastStatus)
 	log.Printf("Firmware String: %v\n\n", dac.FirmwareString)
 
-	//dac.Measure(squarePointStream)
 	debug := false
 	dac.Play(squarePointStream, debug)
 }
 
-func squarePointStream(w *io.PipeWriter) {
+func squarePointStream(w io.WriteCloser) {
 	defer w.Close()
 	pmax := 15600
 	pstep := 100

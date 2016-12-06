@@ -24,37 +24,30 @@ import (
 )
 
 // PreBlankCount is the number of blank samples to insert before moving
-var PreBlankCount = 1
+var PreBlankCount = 0
 
 // PostBlankCount is the number of blank samples to insert after moving
-var PostBlankCount = 25
+var PostBlankCount = 20
 
-// LineStepSize is the length of a segment that can be drawn in one time unit - used to chop the lines
-var LineStepSize = 35.0
+// DrawSpeed affects how many points will be sampled on your lines. Lower is
+// more precise, but is more likely to flicker. Higher values will give smoother
+// playback, but there may be gaps around corners. Try values 25-100.
+var DrawSpeed = 50.0
 
-// LineSteps is the distance of each step when moving from p[0] to p[1]
-func LineSteps(p ln.Path) float64 {
-	return LineStepSize
-}
-
-// LineQuality controls the resolution of your lines. Lower is more precise, but more flicker. Higher
-// will be smoother playback, but there may be gaps around corners. Try values 30-80.
-var LineQuality = 100.0
-
-// LerpSegments returns the number of segments to interpolate the path over
-func LerpSegments(p ln.Path, quality float64) float64 {
-	return p[0].Distance(p[1]) / quality
+// NumberOfSegments to use when interpolating the path
+func NumberOfSegments(p ln.Path, drawSpeed float64) float64 {
+	return p[0].Distance(p[1]) / drawSpeed
 }
 
 // DrawPath will use linear interpolation to draw fn+1 points along the path (fn segments)
 // qual will override the LineQuality (see above).
-func DrawPath(w *io.PipeWriter, p ln.Path, c color.Color, qual float64) {
-	if qual == 0.0 {
-		qual = LineQuality
+func DrawPath(w io.WriteCloser, p ln.Path, c color.Color, drawSpeed float64) {
+	if drawSpeed == 0.0 {
+		drawSpeed = DrawSpeed
 	}
 	dist := p[1].Sub(p[0])
 
-	fn := LerpSegments(p, qual)
+	fn := NumberOfSegments(p, drawSpeed)
 	for iX := 0.0; iX < fn; iX++ {
 		x := dist.X * (iX / fn)
 		y := dist.Y * (iX / fn)
@@ -64,25 +57,12 @@ func DrawPath(w *io.PipeWriter, p ln.Path, c color.Color, qual float64) {
 	w.Write(NewPoint(int(p[1].X), int(p[1].Y), c).Encode())
 }
 
-// ChopPath is the deprecated way to slice up the paths
-func ChopPath(w *io.PipeWriter, p ln.Path, c color.Color) {
-	step := LineSteps(p)
-	for _, pt := range p.Chop(step) {
-		w.Write(NewPoint(int(pt.X), int(pt.Y), c).Encode())
-	}
-}
-
-// BlankPath will blank points on a path
-func BlankPath(w *io.PipeWriter, p ln.Path) {
+// BlankPath will necessary pauses to effectively blank a path
+func BlankPath(w io.WriteCloser, p ln.Path) {
 	for i := 1; i <= PreBlankCount; i++ {
 		w.Write(NewPoint(int(p[0].X), int(p[0].Y), BlankColor).Encode())
 	}
 
-	/*
-		for _, pt := range p.Chop(LineSteps(p)) {
-			w.Write(NewPoint(int(pt.X), int(pt.Y), BlankColor).Encode())
-		}
-	*/
 	for i := 1; i <= PostBlankCount; i++ {
 		w.Write(NewPoint(int(p[1].X), int(p[1].Y), BlankColor).Encode())
 	}

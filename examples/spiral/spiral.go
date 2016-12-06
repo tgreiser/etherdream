@@ -49,7 +49,7 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
-func pointStream(w *io.PipeWriter) {
+func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
 	c := color.RGBA{0x88, 0x00, 0x55, 0xFF}

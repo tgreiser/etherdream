@@ -24,11 +24,21 @@ import (
 
 	"image/color"
 
+	"flag"
+
 	"github.com/tgreiser/etherdream"
 	"github.com/tgreiser/ln/ln"
 )
 
+var speed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is more precision but slower.")
+var preBlank = flag.Int("pre-blank-count", 0, "How many samples to wait before drawing a blanking line.")
+var postBlank = flag.Int("post-blank-count", 20, "How many samples to wait after drawing a blanking line.")
+
 func main() {
+	flag.Parse()
+	etherdream.PreBlankCount = *preBlank
+	etherdream.PostBlankCount = *postBlank
+
 	log.Printf("Listening...\n")
 	addr, _, err := etherdream.FindFirstDAC()
 	if err != nil {
@@ -51,7 +61,7 @@ func line(x, y, z, x2, y2, z2 float64) ln.Path {
 	return ln.Path{ln.Vector{x, y, z}, ln.Vector{x2, y2, z2}}
 }
 
-func pointStream(w *io.PipeWriter) {
+func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
 	c1 := color.RGBA{0x88, 0x00, 0x77, 0xFF}
@@ -78,17 +88,15 @@ func pointStream(w *io.PipeWriter) {
 			if iX+1 < lp {
 				p2 = paths[iX+1]
 			}
-			//log.Printf("%v - %v\n", p, cmax)
+
 			c := c1
 			if iX%2 == 0 {
 				c = c2
 			}
-			etherdream.DrawPath(w, p, c)
-			//etherdream.ChopPath(w, p, c)
+			etherdream.DrawPath(w, p, c, *speed)
 			if p2[0].Distance(p[1]) > 0 {
 				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
 			}
-			//w.Write(etherdream.NewPoint(pt.X, pt.Y, cmax, cmax, cmax, cmax).Encode())
 		}
 
 		frame++

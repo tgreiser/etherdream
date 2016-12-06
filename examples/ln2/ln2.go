@@ -25,11 +25,16 @@ import (
 
 	"image/color"
 
+	"flag"
+
 	"github.com/tgreiser/etherdream"
 	"github.com/tgreiser/ln/ln"
 )
 
+var speed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is more precision but slower.")
+
 func main() {
+	flag.Parse()
 	log.Printf("Listening...\n")
 	addr, _, err := etherdream.FindFirstDAC()
 	if err != nil {
@@ -54,7 +59,7 @@ func cube(x, y, z float64) ln.Shape {
 	return ln.NewCube(v.SubScalar(size), v.AddScalar(size))
 }
 
-func pointStream(w *io.PipeWriter) {
+func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
 	scene := ln.Scene{}
@@ -87,7 +92,7 @@ func pointStream(w *io.PipeWriter) {
 			if iX+1 < lp {
 				p2 = paths[iX+1]
 			}
-			etherdream.DrawPath(w, p, c, 70)
+			etherdream.DrawPath(w, p, c, *speed)
 			if p2[0].Distance(p[1]) > 0 {
 				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
 			}

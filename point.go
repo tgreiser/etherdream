@@ -24,7 +24,7 @@ import (
 
 // PointStream is the interface clients should implement to
 // generate points
-type PointStream func(w *io.PipeWriter)
+type PointStream func(w io.WriteCloser)
 
 // Point is a step in the laser stream, X, Y, RGB, Intensity and
 // some other fields.

@@ -47,7 +47,7 @@ func main() {
 	dac.Play(pointStream, debug)
 }
 
-func pointStream(w *io.PipeWriter) {
+func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
 	// create a scene and add a single cube
@@ -66,6 +66,7 @@ func pointStream(w *io.PipeWriter) {
 	znear := 0.1      // near z plane
 	zfar := 10.0      // far z plane
 	step := 0.01      // how finely to chop the paths for visibility testing
+	speed := 50.0     // Ether Dream rendering quality, lower is more points/slower.
 
 	c := color.RGBA{0x88, 0x00, 0x00, 0xFF}
 	frame := 0
@@ -84,7 +85,7 @@ func pointStream(w *io.PipeWriter) {
 				p2 = paths[iX+1]
 			}
 
-			etherdream.DrawPath(w, p, c)
+			etherdream.DrawPath(w, p, c, speed)
 			if p2[0].Distance(p[1]) > 0 {
 				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
 			}

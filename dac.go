@@ -54,12 +54,11 @@ type DAC struct {
 	Port           string
 	FirmwareString string
 	LastStatus     *DACStatus
-	Reader         *io.PipeReader
-	Writer         *io.PipeWriter
+	Reader         io.Reader
+	Writer         io.WriteCloser
 	PointsPlayed   int
 	buf            bytes.Buffer
 	conn           net.Conn
-	r              io.Reader
 }
 
 // NewDAC will connect to an Ether Dream device over TCP
