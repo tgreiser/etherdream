@@ -131,8 +131,12 @@ If you just want to configure your projector, use examples\parallel_lines\lines.
     go run examples\parallel_lines\lines.go -pre-blank-count=1 -post-blank-count=5
     # Without sufficient post-blank-count, it produce diagonal lines that cut across most of the image.
     
+![Not blanking](http://prim8.net/art/lines_unblanked.jpg)
+    
     go run examples\parallel_lines\lines.go -pre-blank-count=0 -post-blank-count=17
-    # These settings look good on my 30 KPPS projectors
+    # These settings look pretty good on my 30 KPPS projectors. You can still see a small flaw at 17.
+    
+![Blanking](http://prim8.net/art/lines_blanked.jpg)
     
 In the code itself, the flags can be set via etherdream.PreBlankCount and etherdream.PostBlankCount. There is another important variable for the drawing engine, DrawSpeed, which we'll talk about a little later.
 
@@ -160,6 +164,8 @@ In the code itself, the flags can be set via etherdream.PreBlankCount and etherd
     }
 
 ## 3D Rendering
+
+![Cube](http://prim8.net/art/laser-cube.jpg)
 
 ln can also help you with 3D rendering and transformation. You can position 3D primitives within a scene, render those to paths, optimize the order of the paths and then send the result to the projector. See examples\ln1\ln1.go. Aside from the base ln functionality, the one thing to be aware of here is paths.Optimize - without it the ln output creates many unnessesary blank lines.
 
