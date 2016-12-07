@@ -40,7 +40,7 @@ You can run any of the examples like:
     
 ## Connecting
 
-If you have opened the necessary ports, the Ether Dream will broadcast it's identity on the network. You just have to connect to it and provide a [PointStream](https://godoc.org/github.com/tgreiser/etherdream#PointStream)
+If you have opened the necessary ports, the Ether Dream will broadcast it's identity on the network. Once you have connected, you can provide a PointStream to play.
 
     func main() {
         log.Printf("Listening...\n")
@@ -62,6 +62,8 @@ If you have opened the necessary ports, the Ether Dream will broadcast it's iden
     }
 
 ## Point Streams
+
+    type PointStream func(w io.WriteCloser)
 
 Point streams should contain an infinite loop that will use the [WriteCloser](https://golang.org/pkg/io/#WriteCloser) interface to output encoded points to the DAC sequentially. In Ether Dream, a point has 2D vector information and a color (see: [image/color](https://golang.org/pkg/image/color/#Color)).
 
