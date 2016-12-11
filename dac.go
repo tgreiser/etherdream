@@ -141,6 +141,8 @@ func (d DAC) Send(cmd []byte) error {
 	return err
 }
 
+const BeginCmd = 0x62
+
 // Begin Playback
 // This causes the DAC to begin producing output. lwm is
 // currently unused. rate is the number of points per second
@@ -149,11 +151,11 @@ func (d DAC) Send(cmd []byte) error {
 // will reply with ACK; otherwise, it replies with NAK - Invalid.
 func (d *DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 	var cmd = make([]byte, 7)
-	cmd[0] = []byte("b")[0]
+	cmd[0] = BeginCmd
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
 	d.Send(cmd)
-	s, err := d.ReadResponse("b")
+	s, err := d.ReadResponse(string(BeginCmd))
 	fmt.Printf("Begin: %v\n\n", s)
 	return s, err
 }
@@ -162,7 +164,7 @@ func (d *DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 // Maybe this is the 'q' command now.
 func (d *DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
 	var cmd = make([]byte, 7)
-	cmd[0] = []byte("u")[0]
+	cmd[0] = 'u'
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
 	d.Send(cmd)
@@ -172,7 +174,7 @@ func (d *DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
 func (d *DAC) Write(b []byte) (*DACStatus, error) {
 	l := uint16(len(b))
 	cmd := make([]byte, l+3)
-	cmd[0] = []byte("d")[0]
+	cmd[0] = 'd'
 	binary.LittleEndian.PutUint16(cmd[1:3], l/PointSize)
 	copy(cmd[3:], b)
 
@@ -333,8 +335,8 @@ func FindFirstDAC() (*net.UDPAddr, *BroadcastPacket, error) {
 		Port: 7654,
 	})
 
-	data := make([]byte, 1024)
-	_, addr, err := sock.ReadFromUDP(data)
+	var data [36]byte
+	_, addr, err := sock.ReadFromUDP(data[0:])
 	if err != nil {
 		return nil, nil, err
 	}

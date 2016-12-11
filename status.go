@@ -69,7 +69,8 @@ type BroadcastPacket struct {
 	Status         *DACStatus
 }
 
-func NewBroadcastPacket(b []byte) *BroadcastPacket {
+// NewBroadcastPacket is assembled from 36 bytes of data
+func NewBroadcastPacket(b [36]byte) *BroadcastPacket {
 	return &BroadcastPacket{
 		MAC:            b[0:6],
 		HWRev:          binary.LittleEndian.Uint16(b[6:8]),
