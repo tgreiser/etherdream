@@ -128,7 +128,7 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	//fmt.Printf("\nRead response: %s %s\n", string(resp), string(cmdR))
 
 	if cmdR != []byte(cmd)[0] {
-		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", string(cmd), string(cmdR))}
+		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", cmd, string(cmdR))}
 	}
 	if resp != []byte("a")[0] {
 		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %s", string(resp))}
