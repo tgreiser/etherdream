@@ -91,9 +91,9 @@ func (d *DAC) init() error {
 		return err
 	}
 
-	by, err2 := d.Read(32)
-	if err2 != nil {
-		return err2
+	by, err := d.Read(32)
+	if err != nil {
+		return err
 	}
 
 	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
