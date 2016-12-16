@@ -83,15 +83,17 @@ func (d *DAC) init() error {
 	}
 	d.conn = c
 
-	_, err = d.ReadResponse("?")
-	if err != nil {
+	if _, err = d.ReadResponse("?"); err != nil {
 		return err
 	}
 
-	d.Send([]byte("v"))
-	by, err2 := d.Read(32)
-	if err2 != nil {
-		return err2
+	if err = d.Send([]byte("v")); err != nil {
+		return err
+	}
+
+	by, err := d.Read(32)
+	if err != nil {
+		return err
 	}
 
 	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
@@ -126,7 +128,7 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	//fmt.Printf("\nRead response: %s %s\n", string(resp), string(cmdR))
 
 	if cmdR != []byte(cmd)[0] {
-		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", string(cmd), string(cmdR))}
+		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", cmd, string(cmdR))}
 	}
 	if resp != []byte("a")[0] {
 		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %s", string(resp))}
@@ -154,7 +156,11 @@ func (d *DAC) Begin(lwm uint16, rate uint32) (*DACStatus, error) {
 	cmd[0] = BeginCmd
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
-	d.Send(cmd)
+
+	if err := d.Send(cmd); err != nil {
+		return nil, err
+	}
+
 	s, err := d.ReadResponse(string(BeginCmd))
 	fmt.Printf("Begin: %v\n\n", s)
 	return s, err
@@ -167,7 +173,11 @@ func (d *DAC) Update(lwm uint16, rate uint32) (*DACStatus, error) {
 	cmd[0] = 'u'
 	binary.LittleEndian.PutUint16(cmd[1:3], lwm)
 	binary.LittleEndian.PutUint32(cmd[3:7], rate)
-	d.Send(cmd)
+
+	if err := d.Send(cmd); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("u")
 }
 
@@ -178,19 +188,28 @@ func (d *DAC) Write(b []byte) (*DACStatus, error) {
 	binary.LittleEndian.PutUint16(cmd[1:3], l/PointSize)
 	copy(cmd[3:], b)
 
-	d.Send(cmd)
+	if err := d.Send(cmd); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("d")
 }
 
 // Prepare command
 func (d *DAC) Prepare() (*DACStatus, error) {
-	d.Send([]byte("p"))
+	if err := d.Send([]byte("p")); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("p")
 }
 
 // Stop command
 func (d *DAC) Stop() (*DACStatus, error) {
-	d.Send([]byte("s"))
+	if err := d.Send([]byte("s")); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("s")
 }
 
@@ -198,7 +217,10 @@ func (d *DAC) Stop() (*DACStatus, error) {
 // enter the E-Stop state, regardless of its previous
 // state. It is always ACKed.
 func (d *DAC) EmergencyStop() (*DACStatus, error) {
-	d.Send([]byte("\xFF"))
+	if err := d.Send([]byte("\xFF")); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("\xFF")
 }
 
@@ -211,13 +233,19 @@ func (d *DAC) EmergencyStop() (*DACStatus, error) {
 // still active (E-Stop input still asserted, temperature still
 // out of bounds, etc.), then a NAK - Stop Condition is sent.
 func (d *DAC) ClearEmergencyStop() (*DACStatus, error) {
-	d.Send([]byte("c"))
+	if err := d.Send([]byte("c")); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("c")
 }
 
 // Ping command
 func (d *DAC) Ping() (*DACStatus, error) {
-	d.Send([]byte("?"))
+	if err := d.Send([]byte("?")); err != nil {
+		return nil, err
+	}
+
 	return d.ReadResponse("?")
 }
 
@@ -334,6 +362,9 @@ func FindFirstDAC() (*net.UDPAddr, *BroadcastPacket, error) {
 		IP:   net.IPv4(0, 0, 0, 0),
 		Port: 7654,
 	})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var data [36]byte
 	_, addr, err := sock.ReadFromUDP(data[0:])
