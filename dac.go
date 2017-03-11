@@ -37,8 +37,23 @@ var mut = &sync.Mutex{}
 // ScanRate controls the playback speed of the ether dream
 var ScanRate = flag.Int("scan-rate", 24000, "Number of points per second to play back.")
 
+// Assuming the ether dream scans 30 times per second
+var frameRate = 30
+
+// FramePoints is the number of points in one frame - 24k / 30 = 800
+var FramePoints = (*ScanRate) / frameRate
+
+// Count frames
+var frameCount = 0
+
+var bufferSize = 1799
+
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
+
+func whenToPlay() int {
+	return bufferSize - FramePoints/2
+}
 
 // ProtocolError indicates a protocol level error. I've
 // never seen one, but maybe you will.
@@ -68,6 +83,9 @@ type DAC struct {
 // NewDAC will connect to an Ether Dream device over TCP
 // or it will return an error
 func NewDAC(host string) (*DAC, error) {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
 	// connect to the DAC over TCP
 	r, w := io.Pipe()
 	dac := &DAC{Host: host, Port: "7765", Reader: r, Writer: w}
@@ -300,33 +318,35 @@ func (d *DAC) Play(stream PointStream) {
 	// Start stream
 	go stream(d.Writer)
 
+OuterLoop:
 	for {
 		// Read calls from the pipe
 		cap := 1799 - d.LastStatus.BufferFullness
+		by := make([]byte, FramePoints*int(PointSize))
+		idx := 0
+		when := whenToPlay()
 
-		if cap < 100 {
+		if *Debug {
+			fmt.Printf("Buffer capacity: %v is lessThan: %v\n", cap, when)
+		}
+
+		if int(cap) <= when {
 			time.Sleep(time.Millisecond * 5)
 			d.Ping()
 			continue
 		}
 
-		by := make([]byte, cap*PointSize)
-		idx := 0
-		payloadSize := int(cap)
-
-		if *Debug {
-			fmt.Printf("Buffer capacity: %v pts\n", cap)
-		}
-
-		for idx < payloadSize {
+		for idx < FramePoints {
 			bdx := idx * int(PointSize)
 			_, err := d.Reader.Read(by[bdx:])
 			if err != nil {
+				if err == io.EOF {
+					break OuterLoop
+				}
 				fmt.Printf("Error playing stream: %v", err)
 				break
 			}
 			idx++
-
 		}
 
 		mut.Lock()
@@ -350,13 +370,9 @@ func (d *DAC) Play(stream PointStream) {
 				fmt.Printf("\nBegin executed: %v\n", st)
 			}
 		}
-		if *Debug {
-			fmt.Println()
-		}
 
 		mut.Unlock()
 		runtime.Gosched()
-
 	}
 }
 
