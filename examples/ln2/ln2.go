@@ -31,8 +31,6 @@ import (
 	"github.com/tgreiser/ln/ln"
 )
 
-var speed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is more precision but slower.")
-
 func main() {
 	flag.Parse()
 	log.Printf("Listening...\n")
@@ -49,8 +47,7 @@ func main() {
 	}
 	defer dac.Close()
 
-	debug := false
-	dac.Play(pointStream, debug)
+	dac.Play(pointStream)
 }
 
 func cube(x, y, z float64) ln.Shape {
@@ -92,7 +89,7 @@ func pointStream(w io.WriteCloser) {
 			if iX+1 < lp {
 				p2 = paths[iX+1]
 			}
-			etherdream.DrawPath(w, p, c, *speed)
+			etherdream.DrawPath(w, p, c, 0.0)
 			if p2[0].Distance(p[1]) > 0 {
 				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
 			}

@@ -43,8 +43,7 @@ func main() {
 	}
 	defer dac.Close()
 
-	debug := false
-	dac.Play(pointStream, debug)
+	dac.Play(pointStream)
 }
 
 func pointStream(w io.WriteCloser) {
