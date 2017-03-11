@@ -50,7 +50,7 @@ func main() {
 
 func squarePointStream(w io.WriteCloser) {
 	defer w.Close()
-	pmax := 15600
+	pmax := 5600
 	pstep := 100
 	for {
 		for _, x := range xrange(-pmax, pmax, pstep) {
@@ -62,9 +62,12 @@ func squarePointStream(w io.WriteCloser) {
 		for _, x := range xrange(pmax, -pmax, -pstep) {
 			w.Write(etherdream.NewPoint(x, -pmax, color.RGBA{0x00, 0x00, 0xff, 0xff}).Encode())
 		}
+		var pt *etherdream.Point
 		for _, y := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff}).Encode())
+			pt = etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff})
+			w.Write(pt.Encode())
 		}
+		etherdream.NextFrame(w, pstep*4, *pt)
 	}
 }
 

@@ -18,9 +18,11 @@ package etherdream
 
 import (
 	"flag"
+	"fmt"
 	"image/color"
 	"io"
 	"log"
+	"time"
 
 	"github.com/tgreiser/ln/ln"
 )
@@ -36,6 +38,11 @@ var DrawSpeed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is 
 // Debug mode
 var Debug = flag.Bool("debug", false, "Enable debug output.")
 
+// Dump will output the point stream coordinates
+var Dump = flag.Bool("dump", false, "Dump point stream to stdout.")
+
+var tf0 = time.Now()
+
 // NextFrame advances playback ... add some blank points
 func NextFrame(w io.WriteCloser, pointsPlayed int, last Point) int {
 	times := framePoints - pointsPlayed
@@ -44,7 +51,12 @@ func NextFrame(w io.WriteCloser, pointsPlayed int, last Point) int {
 		w.Write(by)
 	}
 	if *Debug {
-		log.Printf("Frame %v added %v empty points", frameCount, times)
+		tf1 := time.Now()
+		log.Printf("%v - Frame %v added %v empty points", tf1.Sub(tf0), frameCount, times)
+		tf0 = tf1
+	}
+	if *Dump {
+		fmt.Printf("---- %v x %v\t%v\t%v\t%v\t%v\n", times, last.X, last.Y, 0, 0, 0)
 	}
 	frameCount++
 	return frameCount
@@ -73,7 +85,7 @@ func DrawPath(w io.WriteCloser, p ln.Path, c color.Color, drawSpeed float64) {
 	w.Write(NewPoint(int(p[1].X), int(p[1].Y), c).Encode())
 }
 
-// BlankPath will necessary pauses to effectively blank a path
+// BlankPath will add the necessary pause to effectively blank a path
 func BlankPath(w io.WriteCloser, p ln.Path) {
 	for i := 1; i <= *BlankCount; i++ {
 		w.Write(NewPoint(int(p[1].X), int(p[1].Y), BlankColor).Encode())

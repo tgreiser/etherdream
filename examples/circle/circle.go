@@ -51,9 +51,9 @@ func main() {
 func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
-	pstep := 80 // 30 and below can damage galvos
+	pstep := 100 // 30 and below can damage galvos
 	c := color.RGBA{0x66, 0x33, 0x00, 0xFF}
-	maxrad := 10260 * 2
+	maxrad := 10260
 	rad := maxrad
 	grow := false
 
@@ -74,6 +74,11 @@ func pointStream(w io.WriteCloser) {
 			x := int(math.Cos(f) * float64(rad))
 			y := int(math.Sin(f) * float64(rad))
 			pt = etherdream.NewPoint(x, y, c)
+			w.Write(pt.Encode())
+		}
+
+		// Need to add some extra points before the laser turns off
+		for i := 0; i < 12; i++ {
 			w.Write(pt.Encode())
 		}
 

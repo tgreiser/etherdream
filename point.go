@@ -18,6 +18,7 @@ package etherdream
 
 import (
 	"encoding/binary"
+	"fmt"
 	"image/color"
 	"io"
 )
@@ -82,6 +83,11 @@ func (p Point) Encode() []byte {
 	binary.LittleEndian.PutUint16(enc[12:14], p.I)
 	binary.LittleEndian.PutUint16(enc[14:16], p.U1)
 	binary.LittleEndian.PutUint16(enc[16:18], p.U2)
+
+	if *Dump {
+		fmt.Printf("%v\t%v\t%v\t%v\t%v\n", p.X, p.Y, p.R, p.G, p.B)
+	}
+
 	mut.Unlock()
 	return enc
 }
