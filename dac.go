@@ -21,6 +21,7 @@ package etherdream
 import (
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -32,6 +33,9 @@ import (
 )
 
 var mut = &sync.Mutex{}
+
+// ScanRate controls the playback speed of the ether dream
+var ScanRate = flag.Int("scan-rate", 24000, "Number of points per second to play back.")
 
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
@@ -143,6 +147,7 @@ func (d DAC) Send(cmd []byte) error {
 	return err
 }
 
+// BeginCmd starts playback
 const BeginCmd = 0x62
 
 // Begin Playback
@@ -259,9 +264,10 @@ func (d DAC) ShouldPrepare() bool {
 
 // Measure how long it takes to play 10,000 points
 func (d *DAC) Measure(stream PointStream) {
+	*Debug = true
 	t0 := time.Now()
 
-	go d.Play(stream, true)
+	go d.Play(stream)
 
 	for {
 		if d.PointsPlayed >= 100000 {
@@ -274,10 +280,10 @@ func (d *DAC) Measure(stream PointStream) {
 }
 
 // Play a stream generator and begin sending output to the laser
-func (d *DAC) Play(stream PointStream, debug bool) {
+func (d *DAC) Play(stream PointStream) {
 	// First, prepare the stream
 	if d.LastStatus.PlaybackState == 2 {
-		if debug {
+		if *Debug {
 			fmt.Printf("Error: Already playing?!")
 		}
 	} else if d.ShouldPrepare() {
@@ -285,7 +291,7 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		if err != nil {
 			fmt.Printf("ERROR: Failed to prepare: %v\n\n", err)
 		}
-		if debug {
+		if *Debug {
 			fmt.Printf("DAC prepared: %v\n\n", st)
 		}
 	}
@@ -308,7 +314,7 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		idx := 0
 		payloadSize := int(cap)
 
-		if debug {
+		if *Debug {
 			fmt.Printf("Buffer capacity: %v pts\n", cap)
 		}
 
@@ -330,21 +336,21 @@ func (d *DAC) Play(stream PointStream, debug bool) {
 		}
 
 		d.PointsPlayed += len(by) / int(PointSize)
-		if debug {
+		if *Debug {
 			fmt.Printf("Points: %v\nStatus: %v\n", d.PointsPlayed, st)
 		}
 
 		if started == 0 {
-			st, err := d.Begin(0, 30000)
+			st, err := d.Begin(0, uint32(*ScanRate))
 			if err != nil {
 				fmt.Printf("ERROR on Begin: %v\n\n", err)
 			}
 			started = 1
-			if debug {
+			if *Debug {
 				fmt.Printf("\nBegin executed: %v\n", st)
 			}
 		}
-		if debug {
+		if *Debug {
 			fmt.Println()
 		}
 

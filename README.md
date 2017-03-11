@@ -122,18 +122,31 @@ From examples\square\square.go:
         return iX >= max
     }
 
+## Flags
+
+Etherdream library will intialize the following flags - use -help for more info:
+
+    -blank-count int
+        How many samples to wait after drawing a blanking line. (default 20)
+    -debug
+        Enable debug output.
+    -draw-speed float
+        Draw speed (25-100). Lower is more precision but slower. (default 50)
+    -scan-rate int
+        Number of points per second to play back. (default 24000)
+
 ## Blanking and Paths
 
 Here we introduce the use of [tgreiser/ln](https://github.com/tgreiser/ln), a fork of Fogleman's excellent [ln](https://github.com/fogleman/ln) 3D vector library. Blanking is used to reposition the laser to a new location, it involves turning off the beam, repositioning and then a pause. The exact pause necessary to clean up an image can vary from projector to projector so this can be easily configured. I am using the methodology outlined in [Accurate and Efficient Drawing Method for Laser Projection](http://www.art-science.org/journal/v7n4/v7n4pp155/artsci-v7n4pp155.pdf)
 
 If you just want to configure your projector, use examples\parallel_lines\lines.go
 
-    go run examples\parallel_lines\lines.go -pre-blank-count=1 -post-blank-count=5
+    go run examples\parallel_lines\lines.go -blank-count=5
     # Without sufficient post-blank-count, it produce diagonal lines that cut across most of the image.
     
 ![Not blanking](http://prim8.net/art/lines_unblanked.jpg)
     
-    go run examples\parallel_lines\lines.go -pre-blank-count=0 -post-blank-count=17
+    go run examples\parallel_lines\lines.go -blank-count=17
     # These settings look pretty good on my 30 KPPS projectors. You can still see a small flaw at 17.
     
 ![Blanking](http://prim8.net/art/lines_blanked.jpg)

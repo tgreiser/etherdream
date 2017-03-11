@@ -45,8 +45,7 @@ func main() {
 	log.Printf("Initialized:  %v\n\n", dac.LastStatus)
 	log.Printf("Firmware String: %v\n\n", dac.FirmwareString)
 
-	debug := false
-	dac.Play(squarePointStream, debug)
+	dac.Play(squarePointStream)
 }
 
 func squarePointStream(w io.WriteCloser) {

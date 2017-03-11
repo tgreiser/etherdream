@@ -17,22 +17,28 @@
 package etherdream
 
 import (
+	"flag"
 	"image/color"
 	"io"
 
 	"github.com/tgreiser/ln/ln"
 )
 
-// PreBlankCount is the number of blank samples to insert before moving
-var PreBlankCount = 0
-
-// PostBlankCount is the number of blank samples to insert after moving
-var PostBlankCount = 20
+// BlankCount is the number of blank samples to insert after moving
+var BlankCount = flag.Int("blank-count", 20, "How many samples to wait after drawing a blanking line.")
 
 // DrawSpeed affects how many points will be sampled on your lines. Lower is
 // more precise, but is more likely to flicker. Higher values will give smoother
 // playback, but there may be gaps around corners. Try values 25-100.
-var DrawSpeed = 50.0
+var DrawSpeed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is more precision but slower.")
+
+// Debug mode
+var Debug = flag.Bool("debug", false, "Enable debug output.")
+
+// set up flags
+func init() {
+	flag.Parse()
+}
 
 // NumberOfSegments to use when interpolating the path
 func NumberOfSegments(p ln.Path, drawSpeed float64) float64 {
@@ -43,7 +49,7 @@ func NumberOfSegments(p ln.Path, drawSpeed float64) float64 {
 // qual will override the LineQuality (see above).
 func DrawPath(w io.WriteCloser, p ln.Path, c color.Color, drawSpeed float64) {
 	if drawSpeed == 0.0 {
-		drawSpeed = DrawSpeed
+		drawSpeed = *DrawSpeed
 	}
 	dist := p[1].Sub(p[0])
 
@@ -59,11 +65,7 @@ func DrawPath(w io.WriteCloser, p ln.Path, c color.Color, drawSpeed float64) {
 
 // BlankPath will necessary pauses to effectively blank a path
 func BlankPath(w io.WriteCloser, p ln.Path) {
-	for i := 1; i <= PreBlankCount; i++ {
-		w.Write(NewPoint(int(p[0].X), int(p[0].Y), BlankColor).Encode())
-	}
-
-	for i := 1; i <= PostBlankCount; i++ {
+	for i := 1; i <= *BlankCount; i++ {
 		w.Write(NewPoint(int(p[1].X), int(p[1].Y), BlankColor).Encode())
 	}
 }

@@ -24,21 +24,11 @@ import (
 
 	"image/color"
 
-	"flag"
-
 	"github.com/tgreiser/etherdream"
 	"github.com/tgreiser/ln/ln"
 )
 
-var speed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is more precision but slower.")
-var preBlank = flag.Int("pre-blank-count", 0, "How many samples to wait before drawing a blanking line.")
-var postBlank = flag.Int("post-blank-count", 20, "How many samples to wait after drawing a blanking line.")
-
 func main() {
-	flag.Parse()
-	etherdream.PreBlankCount = *preBlank
-	etherdream.PostBlankCount = *postBlank
-
 	log.Printf("Listening...\n")
 	addr, _, err := etherdream.FindFirstDAC()
 	if err != nil {
@@ -53,8 +43,7 @@ func main() {
 	}
 	defer dac.Close()
 
-	debug := false
-	dac.Play(pointStream, debug)
+	dac.Play(pointStream)
 }
 
 func line(x, y, z, x2, y2, z2 float64) ln.Path {
@@ -93,7 +82,7 @@ func pointStream(w io.WriteCloser) {
 			if iX%2 == 0 {
 				c = c2
 			}
-			etherdream.DrawPath(w, p, c, *speed)
+			etherdream.DrawPath(w, p, c, 0.0)
 			if p2[0].Distance(p[1]) > 0 {
 				etherdream.BlankPath(w, ln.Path{p[1], p2[0]})
 			}
