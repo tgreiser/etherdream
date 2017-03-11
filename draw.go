@@ -20,6 +20,7 @@ import (
 	"flag"
 	"image/color"
 	"io"
+	"log"
 
 	"github.com/tgreiser/ln/ln"
 )
@@ -35,9 +36,18 @@ var DrawSpeed = flag.Float64("draw-speed", 50.0, "Draw speed (25-100). Lower is 
 // Debug mode
 var Debug = flag.Bool("debug", false, "Enable debug output.")
 
-// set up flags
-func init() {
-	flag.Parse()
+// NextFrame advances playback ... add some blank points
+func NextFrame(w io.WriteCloser, pointsPlayed int, last Point) int {
+	times := framePoints - pointsPlayed
+	by := NewPoint(int(last.X), int(last.Y), BlankColor).Encode()
+	for iX := 0; iX < times; iX++ {
+		w.Write(by)
+	}
+	if *Debug {
+		log.Printf("Frame %v added %v empty points", frameCount, times)
+	}
+	frameCount++
+	return frameCount
 }
 
 // NumberOfSegments to use when interpolating the path
