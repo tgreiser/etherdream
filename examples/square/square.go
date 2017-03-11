@@ -21,6 +21,7 @@ package main
 import (
 	"io"
 	"log"
+	"math"
 
 	"image/color"
 
@@ -48,26 +49,44 @@ func main() {
 	dac.Play(squarePointStream)
 }
 
+func squareFrame(w io.WriteCloser, pmax, pstep int) *etherdream.Point {
+	for _, x := range xrange(-pmax, pmax, pstep) {
+		w.Write(etherdream.NewPoint(x, pmax, color.RGBA{0xff, 0x00, 0x00, 0xff}).Encode())
+	}
+	for _, y := range xrange(pmax, -pmax, -pstep) {
+		w.Write(etherdream.NewPoint(pmax, y, color.RGBA{0x00, 0xff, 0x00, 0xff}).Encode())
+	}
+	for _, x := range xrange(pmax, -pmax, -pstep) {
+		w.Write(etherdream.NewPoint(x, -pmax, color.RGBA{0x00, 0x00, 0xff, 0xff}).Encode())
+	}
+	var pt *etherdream.Point
+	for _, y := range xrange(-pmax, pmax, pstep) {
+		pt = etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff})
+		w.Write(pt.Encode())
+	}
+	return pt
+}
+
 func squarePointStream(w io.WriteCloser) {
 	defer w.Close()
 	pmax := 5600
-	pstep := 100
+	pstep := 112
+	pct := pmax / pstep * 4
 	for {
-		for _, x := range xrange(-pmax, pmax, pstep) {
-			w.Write(etherdream.NewPoint(x, pmax, color.RGBA{0xff, 0x00, 0x00, 0xff}).Encode())
-		}
-		for _, y := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(pmax, y, color.RGBA{0x00, 0xff, 0x00, 0xff}).Encode())
-		}
-		for _, x := range xrange(pmax, -pmax, -pstep) {
-			w.Write(etherdream.NewPoint(x, -pmax, color.RGBA{0x00, 0x00, 0xff, 0xff}).Encode())
-		}
 		var pt *etherdream.Point
-		for _, y := range xrange(-pmax, pmax, pstep) {
-			pt = etherdream.NewPoint(-pmax, y, color.RGBA{0xff, 0xff, 0xff, 0xff})
-			w.Write(pt.Encode())
+		ct := pct
+		times := int(math.Floor(float64(etherdream.FramePoints / ct)))
+		ct = 0
+
+		// This approach gives flicker free draw, when
+		// repeated 4x
+		for i := 0; i < times; i++ {
+			pt = squareFrame(w, pmax, pstep)
+			ct += pct
 		}
-		etherdream.NextFrame(w, pstep*4, *pt)
+
+		//log.Printf("Ran %v times for %v\n", times, ct)
+		etherdream.NextFrame(w, ct, *pt)
 	}
 }
 

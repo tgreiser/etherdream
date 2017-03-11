@@ -45,7 +45,7 @@ var tf0 = time.Now()
 
 // NextFrame advances playback ... add some blank points
 func NextFrame(w io.WriteCloser, pointsPlayed int, last Point) int {
-	times := framePoints - pointsPlayed
+	times := FramePoints - pointsPlayed
 	by := NewPoint(int(last.X), int(last.Y), BlankColor).Encode()
 	for iX := 0; iX < times; iX++ {
 		w.Write(by)
