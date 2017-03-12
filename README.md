@@ -157,8 +157,6 @@ If you just want to configure your projector, use examples\parallel_lines\lines.
     
 ![Blanking](http://prim8.net/art/lines_blanked.jpg)
     
-In the code itself, the flags can be set via etherdream.PreBlankCount and etherdream.PostBlankCount. There is another important variable for the drawing engine, DrawSpeed, which we'll talk about a little later.
-
     // declare some ln Paths
     p := ln.Path{ln.Vector{0, 0, 0}, ln.Vector{0, 500, 0}}
     p2 := ln.Path{ln.Vector{10000, 0, 0}, ln.Vector{10000, 500, 0}}
