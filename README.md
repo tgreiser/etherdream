@@ -29,14 +29,20 @@ The simplest setup involves one DAC and one projector, but there are many option
 
 ## Install
 
-Assuming you have Go set up and installed, just:
+If you don't have Go installed, start here:
+[https://golang.org/doc/install](https://golang.org/doc/install)
+
+Once Go is installed with your environment updated, just:
 
     go get github.com/tgreiser/etherdream
-    # cd to the etherdream directory
+    cd $GOPATH/src/github.com/tgreiser/etherdream
     
 You can run any of the examples like:
 
     go run examples/square/square.go
+    # if you aren't blocking the network ports, and your Ether Dream
+    # is connected to an ILDA laser, it should project a square
+
     
 ## Connecting
 
@@ -151,8 +157,6 @@ If you just want to configure your projector, use examples\parallel_lines\lines.
     
 ![Blanking](http://prim8.net/art/lines_blanked.jpg)
     
-In the code itself, the flags can be set via etherdream.PreBlankCount and etherdream.PostBlankCount. There is another important variable for the drawing engine, DrawSpeed, which we'll talk about a little later.
-
     // declare some ln Paths
     p := ln.Path{ln.Vector{0, 0, 0}, ln.Vector{0, 500, 0}}
     p2 := ln.Path{ln.Vector{10000, 0, 0}, ln.Vector{10000, 500, 0}}
@@ -175,6 +179,26 @@ In the code itself, the flags can be set via etherdream.PreBlankCount and etherd
             etherdream.BlankPath(w, ln.Path{p2[1], p[0]})
         }
     }
+
+## Frames
+
+If you are interested in animations, the driver is more precise when you
+signal the end of a frame in your pointStream. This will flush the buffer 
+and send the frame to the Ether Dream. Currently this is controlled via 
+NextFrame(), but this portion is in active development.
+
+    func pointStream(w io.WriteCloser) {
+        defer w.Close()
+        for {
+            // write all the points in a frame
+            // count how many, and save the last point
+
+            frameCount := etherdream.NextFrame(w, pointCount, lastPoint)
+    }
+
+Using this we can draw a scene. See: https://github.com/tgreiser/simpartdream
+
+[![Laser Particles](http://img.youtube.com/vi/sJ83l9APE3A/0.jpg)](http://www.youtube.com/watch?v=sJ83l9APE3A "Laser Particles")
 
 ## 3D Rendering
 
@@ -201,7 +225,7 @@ When a frame takes too long to draw you will see the output flicker. We can adju
 
 ## TODO
 
-- A setting for adaptive draw speed.
+- Instead of draw speed, render a frame from vectors according with optimum sample count.
 - Optimization - slow down prior to to sharp angles of movement.
 - Import of SVG/ILDA files.
 
