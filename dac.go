@@ -48,6 +48,9 @@ var frameCount = 0
 
 var bufferSize = 1799
 
+// disableFirmwareCheck exists to provide compatibility with etherdream-emulator
+var disableFirmwareCheck = flag.Bool("disable-fw-check", false, "Disable firmware check")
+
 // PointSize is the number of bytes in a point struct
 const PointSize uint16 = 18
 
@@ -109,17 +112,18 @@ func (d *DAC) init() error {
 		return err
 	}
 
-	if err = d.Send([]byte("v")); err != nil {
-		return err
+	if *disableFirmwareCheck == false {
+		if err = d.Send([]byte("v")); err != nil {
+			return err
+		}
+
+		by, err := d.Read(32)
+		if err != nil {
+			return err
+		}
+
+		d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
 	}
-
-	by, err := d.Read(32)
-	if err != nil {
-		return err
-	}
-
-	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
-
 	return nil
 }
 
