@@ -119,6 +119,9 @@ func (d *DAC) init() error {
 	}
 
 	d.FirmwareString = strings.TrimSpace(strings.Replace(string(by), "\x00", " ", -1))
+	if *Debug {
+		fmt.Printf("Firmware: %v\n", d.FirmwareString)
+	}
 
 	return nil
 }
@@ -210,6 +213,9 @@ func (d *DAC) Write(b []byte) (*DACStatus, error) {
 	cmd[0] = 'd'
 	binary.LittleEndian.PutUint16(cmd[1:3], l/PointSize)
 	copy(cmd[3:], b)
+	if *Debug {
+		fmt.Printf("DAC Write %v points\n", l/PointSize)
+	}
 
 	if err := d.Send(cmd); err != nil {
 		return nil, err
