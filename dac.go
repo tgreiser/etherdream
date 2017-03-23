@@ -40,9 +40,6 @@ var ScanRate = flag.Int("scan-rate", 24000, "Number of points per second to play
 // Assuming the ether dream scans 30 times per second
 var frameRate = 30
 
-// FramePoints is the number of points in one frame - 24k / 30 = 800
-var FramePoints = (*ScanRate) / frameRate
-
 // Count frames
 var frameCount = 0
 
@@ -52,7 +49,7 @@ var bufferSize = 1799
 const PointSize uint16 = 18
 
 func whenToPlay() int {
-	return bufferSize - FramePoints/2
+	return bufferSize - FramePoints()
 }
 
 // ProtocolError indicates a protocol level error. I've
@@ -328,7 +325,7 @@ OuterLoop:
 	for {
 		// Read calls from the pipe
 		cap := 1799 - d.LastStatus.BufferFullness
-		by := make([]byte, FramePoints*int(PointSize))
+		by := make([]byte, FramePoints()*int(PointSize))
 		idx := 0
 		when := whenToPlay()
 
@@ -342,7 +339,8 @@ OuterLoop:
 			continue
 		}
 
-		for idx < FramePoints {
+		fp := FramePoints()
+		for idx < fp {
 			bdx := idx * int(PointSize)
 			_, err := d.Reader.Read(by[bdx:])
 			if err != nil {
