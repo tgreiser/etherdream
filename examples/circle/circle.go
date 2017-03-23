@@ -21,7 +21,6 @@ package main
 import (
 	"io"
 	"log"
-	"runtime"
 
 	"math"
 
@@ -51,7 +50,9 @@ func main() {
 func pointStream(w io.WriteCloser) {
 	defer w.Close()
 
-	pstep := 100 // 30 and below can damage galvos
+	// Don't use a low # of steps, 30 and below can damage galvos
+	// We'll use the number of points in a frame for optimal sampling
+	pstep := etherdream.FramePoints()
 	c := color.RGBA{0x66, 0x33, 0x00, 0xFF}
 	maxrad := 10260
 	rad := maxrad
@@ -69,7 +70,7 @@ func pointStream(w io.WriteCloser) {
 			rad -= 100
 		}
 		var pt *etherdream.Point
-		for _, i := range xrange(0, pstep, 1) {
+		for i := 0; i < pstep; i++ {
 			f := float64(i) / float64(pstep) * 2.0 * math.Pi
 			x := int(math.Cos(f) * float64(rad))
 			y := int(math.Sin(f) * float64(rad))
@@ -77,31 +78,6 @@ func pointStream(w io.WriteCloser) {
 			w.Write(pt.Encode())
 		}
 
-		// Need to add some extra points before the laser turns off
-		for i := 0; i < 12; i++ {
-			w.Write(pt.Encode())
-		}
-
 		_ = etherdream.NextFrame(w, pstep, *pt)
-		//log.Printf("Generated a frame")
-		runtime.Gosched() // yield for other go routines
 	}
-}
-
-func xrange(min, max, step int) []int {
-	rng := max - min
-	ret := make([]int, rng/step+1)
-	iY := 0
-	for iX := min; rlogic(min, max, iX); iX += step {
-		ret[iY] = iX
-		iY++
-	}
-	return ret
-}
-
-func rlogic(min, max, iX int) bool {
-	if min < max {
-		return iX <= max
-	}
-	return iX >= max
 }

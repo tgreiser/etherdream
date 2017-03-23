@@ -55,12 +55,12 @@ func pointStream(w io.WriteCloser) {
 	maxrad := 22600
 	rad := int(maxrad / 100)
 	var spiralgrowth float64 = 14
-	frame := 0
 
 	for {
 		var j float64
 
-		for _, i := range xrange(0, 1000, 1) {
+		to := etherdream.FramePoints() - *etherdream.BlankCount
+		for _, i := range xrange(0, to, 1) {
 			f := float64(i) / 1000.0 * 2.0 * math.Pi * spiralgrowth
 			j = f
 			x := int(j * math.Cos(f) * float64(rad))
@@ -74,9 +74,9 @@ func pointStream(w io.WriteCloser) {
 		x := j * math.Cos(f) * float64(rad)
 		y := j * math.Sin(f) * float64(rad)
 		p := ln.Path{ln.Vector{x, y, 0}, ln.Vector{0, 0, 0}}
-		etherdream.BlankPath(w, p)
+		pt := etherdream.BlankPath(w, p)
 
-		frame++
+		_ = etherdream.NextFrame(w, etherdream.FramePoints(), *pt)
 	}
 }
 
