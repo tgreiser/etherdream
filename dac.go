@@ -96,6 +96,9 @@ func (d *DAC) Close() {
 }
 
 func (d *DAC) init() error {
+	if *Debug {
+		fmt.Println("Connecting to TCP")
+	}
 	c, err := net.DialTimeout("tcp", d.Host+":"+d.Port, time.Second*15)
 	if err != nil {
 		return err

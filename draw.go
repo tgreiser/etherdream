@@ -91,8 +91,11 @@ func DrawPath(w io.WriteCloser, p ln.Path, c color.Color, drawSpeed float64) {
 }
 
 // BlankPath will add the necessary pause to effectively blank a path
-func BlankPath(w io.WriteCloser, p ln.Path) {
+func BlankPath(w io.WriteCloser, p ln.Path) *Point {
+	var pt *Point
 	for i := 1; i <= *BlankCount; i++ {
-		w.Write(NewPoint(int(p[1].X), int(p[1].Y), BlankColor).Encode())
+		pt = NewPoint(int(p[1].X), int(p[1].Y), BlankColor)
+		w.Write(pt.Encode())
 	}
+	return pt
 }

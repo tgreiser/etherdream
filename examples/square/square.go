@@ -75,7 +75,7 @@ func squarePointStream(w io.WriteCloser) {
 	for {
 		var pt *etherdream.Point
 		ct := pct
-		times := int(math.Floor(float64(etherdream.FramePoints / ct)))
+		times := int(math.Floor(float64(etherdream.FramePoints() / ct)))
 		ct = 0
 
 		// This approach gives flicker free draw, when
@@ -85,7 +85,6 @@ func squarePointStream(w io.WriteCloser) {
 			ct += pct
 		}
 
-		//log.Printf("Ran %v times for %v\n", times, ct)
 		etherdream.NextFrame(w, ct, *pt)
 	}
 }
