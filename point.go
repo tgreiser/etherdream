@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"image/color"
 	"io"
+
+	"github.com/tgreiser/ln/ln"
 )
 
 // PointStream is the interface clients should implement to
@@ -90,6 +92,10 @@ func (p Point) Encode() []byte {
 
 	mut.Unlock()
 	return enc
+}
+
+func (p Point) ToVector() ln.Vector {
+	return ln.Vector{float64(p.X), float64(p.Y), 0.0}
 }
 
 // Points - Point list

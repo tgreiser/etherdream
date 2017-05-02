@@ -22,6 +22,7 @@ import (
 	"image/color"
 	"io"
 	"log"
+	"math"
 	"time"
 
 	"github.com/tgreiser/ln/ln"
@@ -98,4 +99,10 @@ func BlankPath(w io.WriteCloser, p ln.Path) *Point {
 		w.Write(pt.Encode())
 	}
 	return pt
+}
+
+// Osc is an oscillator value - send it frame counts / point counts
+func Osc(cur, max int, amplitude, frequency, offset float64) float64 {
+	rad := float64(cur+1) / float64(max) * 2.0 * math.Pi
+	return math.Sin(rad*frequency)*amplitude + offset
 }
