@@ -150,13 +150,13 @@ func (d *DAC) ReadResponse(cmd string) (*DACStatus, error) {
 	resp := data[0]
 	cmdR := data[1]
 	status := NewDACStatus(data[2:])
-	//fmt.Printf("\nRead response: %s %s\n", string(resp), string(cmdR))
+	//fmt.Printf("\nRead response: Resp=%s Cmd=%s Status=%s\n", string(resp), string(cmdR), status.String())
 
 	if cmdR != []byte(cmd)[0] {
 		return nil, &ProtocolError{fmt.Sprintf("Expected resp for %s, got %s", cmd, string(cmdR))}
 	}
 	if resp != []byte("a")[0] {
-		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %s", string(resp))}
+		return nil, &ProtocolError{fmt.Sprintf("Expected ACK, got %s Resp=%s\n%s", string(cmdR), string(resp), status.String())}
 	}
 	d.LastStatus = status
 	return status, nil
