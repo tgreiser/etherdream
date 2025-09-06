@@ -9,7 +9,7 @@ Based on the work of [j4cbo](https://github.com/j4cbo/j4cDAC/), [echelon](https:
 ## Terminology
 
 - projector/scanner - An ILDA compatible laser projector aka laser scanner. 2 (or more) mirrors, 2 galvos, some laser diodes and electronics. Not to be confused with the other kind of laser projector.
-- DAC - Digital to Analog Converter. An electronic box that translates digital signals from a computer into analog signals that control the galvos via an IDLA cable. There are proprietary and open source DACs, as well as modified sound cards used as DACs. In this context, it means your Ether Dream(s).
+- DAC - Digital to Analog Converter. An electronic box that translates digital signals from a computer into analog signals that control the galvos via an ILDA cable. There are proprietary and open source DACs, as well as modified sound cards used as DACs. In this context, it means your Ether Dream(s).
 
 ## Setup
 
